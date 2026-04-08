@@ -16,28 +16,42 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         Vector3 direction = new Vector3(_joystick.Horizontal, 0, _joystick.Vertical);
+
+        if (direction.magnitude > 1f)
+            direction.Normalize();
         
-        _rigidbody.linearVelocity = new Vector3(
+        Vector3 targetVelocity = new Vector3(
             direction.x * _moveSpeed,
             _rigidbody.linearVelocity.y,
             direction.z * _moveSpeed
         );
+
+        _rigidbody.linearVelocity = Vector3.Lerp(
+            _rigidbody.linearVelocity,
+            targetVelocity,
+            Time.fixedDeltaTime * 10f
+        );
         
-        if (direction.magnitude > 0.01f) 
+        if (direction.sqrMagnitude > 0.001f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * 10f);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Time.fixedDeltaTime * 15f
+            );
         }
         
-        bool isMoving = direction.magnitude > 0.01f;
+        bool isMoving = direction.sqrMagnitude > 0.001f;
+
         if (isMoving && !isRunning)
         {
             _animator.SetTrigger("Run");
             isRunning = true;
         }
-        if (!isMoving && isRunning)
+        else if (!isMoving && isRunning)
         {
-            _animator.SetTrigger("Idle"); 
+            _animator.SetTrigger("Idle");
             isRunning = false;
         }
     }
