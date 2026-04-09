@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class BrickSpawner : MonoBehaviour
 {
     [Header("Pool")]
-    [SerializeField] private string poolKey = "SpawnBrick";
+    [SerializeField] private string brickKey = "SpawnBrick";
     [SerializeField] private float delay = 0.1f;
 
     [Header("Grid")]
@@ -14,18 +15,24 @@ public class BrickSpawner : MonoBehaviour
     [SerializeField] private int height = 10;
     [SerializeField] private float spacing = 1.2f;
 
+    [Header("Characters (Players & Enemies)")]
+    [SerializeField] private List<Character> characters; 
+
     private List<Vector3> positions = new List<Vector3>();
     private HashSet<Vector3> emptyPositions = new HashSet<Vector3>();
+    
+    private Dictionary<Character, int> characterBrickCount = new Dictionary<Character, int>();
+    private int maxBricksPerCharacter;
 
     private void Start()
     {
         GenerateGrid();
-        SpawnFull();
+        positions = positions.OrderBy(x => Random.value).ToList();
 
+        SpawnFull();
         StartCoroutine(FillRoutine());
     }
 
-    // Tạo toàn bộ vị trí grid
     void GenerateGrid()
     {
         positions.Clear();
@@ -42,66 +49,103 @@ public class BrickSpawner : MonoBehaviour
                 );
 
                 positions.Add(pos);
-                emptyPositions.Add(pos); // ban đầu tất cả đều trống
+                emptyPositions.Add(pos);
             }
         }
     }
 
-    // Spawn full map
     void SpawnFull()
     {
-        foreach (var pos in positions)
+        positions = positions.OrderBy(x => Random.value).ToList();
+        
+        List<Character> validCharacters = characters.Where(c => c != null).ToList();
+        int validCount = validCharacters.Count;
+        int totalCharacters = characters.Count;
+        int totalPositions = positions.Count;
+
+        if (validCount == 0) return;
+
+        // Tổng số gạch cho tất cả character hợp lệ
+        int bricksToSpawn = Mathf.RoundToInt(totalPositions * ((float)validCount / totalCharacters));
+        maxBricksPerCharacter = bricksToSpawn / validCount;
+
+        int posIndex = 0;
+
+        foreach (Character character in validCharacters)
         {
-            SpawnBrick(pos);
+            characterBrickCount[character] = 0; // Khởi tạo count
+
+            int numBricks = maxBricksPerCharacter;
+            for (int i = 0; i < numBricks; i++)
+            {
+                if (posIndex >= positions.Count) break;
+
+                Vector3 pos = positions[posIndex];
+                SpawnBrick(pos, character);
+                posIndex++;
+            }
         }
     }
 
-    // Spawn 1 viên tại vị trí cụ thể
-    void SpawnBrick(Vector3 pos)
+    // Đổi tham số từ Player thành Character
+    void SpawnBrick(Vector3 pos, Character character)
     {
-        if (!emptyPositions.Contains(pos)) return;
+        if (character == null || !emptyPositions.Contains(pos)) return;
 
-        GameObject brick = SimplePool.Spawn(poolKey, pos, Quaternion.identity);
+        if (!characterBrickCount.ContainsKey(character))
+            characterBrickCount[character] = 0;
+
+        if (characterBrickCount[character] >= maxBricksPerCharacter)
+            return; 
+
+        GameObject brick = SimplePool.Spawn(brickKey, pos, Quaternion.identity);
         brick.transform.SetParent(root);
 
-        // Gắn lại vị trí cho brick
         Brick brickScript = brick.GetComponent<Brick>();
         if (brickScript != null)
         {
-            brickScript.Init(this, pos);
+            brickScript.spawnPos = pos;
+            brickScript.SetOwnerColor(character.characterColor);
         }
 
         emptyPositions.Remove(pos);
+        characterBrickCount[character]++;
     }
 
-    // Khi brick bị nhặt
-    public void OnBrickCollected(Vector3 pos)
+    public void OnBrickCollected(Vector3 pos, Character character)
     {
         if (!emptyPositions.Contains(pos))
         {
             emptyPositions.Add(pos);
+            
+            if (characterBrickCount.ContainsKey(character))
+            {
+                characterBrickCount[character]--;
+            }
         }
     }
 
-    // Tự động fill lại gạch
     IEnumerator FillRoutine()
     {
+        List<Character> validCharacters = characters.Where(c => c != null).ToList();
+
         while (true)
         {
-            if (emptyPositions.Count > 0)
+            foreach (Character character in validCharacters)
             {
-                // Lấy random 1 vị trí trống
-                int randIndex = Random.Range(0, emptyPositions.Count);
+                if (characterBrickCount[character] < maxBricksPerCharacter && emptyPositions.Count > 0)
+                {
+                    int randIndex = Random.Range(0, emptyPositions.Count);
+                    Vector3 pos = GetRandomEmptyPosition(randIndex);
 
-                Vector3 pos = GetRandomEmptyPosition(randIndex);
-                SpawnBrick(pos);
+                    SpawnBrick(pos, character);
+                }
             }
 
             yield return new WaitForSeconds(delay);
         }
     }
 
-    // Lấy phần tử random trong HashSet
     Vector3 GetRandomEmptyPosition(int index)
     {
         int i = 0;

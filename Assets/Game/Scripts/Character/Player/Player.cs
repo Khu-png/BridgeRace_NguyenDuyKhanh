@@ -1,10 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+
 [RequireComponent(typeof(Rigidbody), typeof (CapsuleCollider))]
-public class PlayerController : MonoBehaviour
+public class Player : Character
 {
+    
+    [Header("Movement")]
     [SerializeField] private Rigidbody _rigidbody;
     [SerializeField] private FixedJoystick _joystick;
     [SerializeField] private Animator _animator;

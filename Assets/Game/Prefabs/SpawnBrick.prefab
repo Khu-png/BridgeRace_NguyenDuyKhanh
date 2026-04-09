@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1265593149247360158}
   m_Layer: 0
   m_Name: SpawnBrick
-  m_TagString: Untagged
+  m_TagString: Brick
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -46,6 +46,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f8c2f3e13dd48c4bbe0b4af5e79f1c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brick
+  meshRenderer: {fileID: 4001168643592819568}
+  ownerColor: {r: 0, g: 0, b: 0, a: 0}
+  spawnPos: {x: 0, y: 0, z: 0}
 --- !u!135 &1265593149247360158
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -127,5 +130,10 @@ PrefabInstance:
 --- !u!4 &2867717030576384031 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
+  m_PrefabInstance: {fileID: 2325709051698778100}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4001168643592819568 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
   m_PrefabInstance: {fileID: 2325709051698778100}
   m_PrefabAsset: {fileID: 0}
