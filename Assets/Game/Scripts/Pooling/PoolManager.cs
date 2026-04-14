@@ -64,7 +64,6 @@ public class PoolManager : Singleton<PoolManager>
     {
         if (!poolDictionary.ContainsKey(key))
         {
-            Debug.LogError("Không có pool: " + key);
             return null;
         }
 
@@ -102,7 +101,6 @@ public class PoolManager : Singleton<PoolManager>
 
         if (poolObj == null)
         {
-            Debug.LogError("Object không thuộc pool");
             return;
         }
 

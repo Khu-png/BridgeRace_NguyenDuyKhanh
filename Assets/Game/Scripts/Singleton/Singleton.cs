@@ -11,11 +11,6 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
             if (_instance == null)
             {
                 _instance = FindFirstObjectByType<T>();
-
-                if (_instance == null)
-                {
-                    Debug.LogError($"No instance of {typeof(T)} found in scene!");
-                }
             }
 
             return _instance;
@@ -30,7 +25,6 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
         }
         else if (_instance != this)
         {
-            Debug.LogWarning($"Duplicate Singleton destroyed: {gameObject.name}");
             Destroy(gameObject);
         }
     }

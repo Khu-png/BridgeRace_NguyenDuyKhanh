@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using System.Linq;
+using UnityEngine;
 
 public class BrickSpawner : MonoBehaviour
 {
@@ -16,21 +16,36 @@ public class BrickSpawner : MonoBehaviour
     [SerializeField] private float spacing = 1.2f;
 
     [Header("Characters (Players & Enemies)")]
-    [SerializeField] private List<Character> characters; 
+    [SerializeField] private List<Character> characters = new List<Character>();
+    [SerializeField] private StageController stageController;
 
-    private List<Vector3> positions = new List<Vector3>();
-    private HashSet<Vector3> emptyPositions = new HashSet<Vector3>();
-    
-    private Dictionary<Character, int> characterBrickCount = new Dictionary<Character, int>();
+    private readonly List<Vector3> positions = new List<Vector3>();
+    private readonly HashSet<Vector3> emptyPositions = new HashSet<Vector3>();
+    private readonly Dictionary<Character, int> characterBrickCount = new Dictionary<Character, int>();
+    private readonly Dictionary<Character, HashSet<Brick>> spawnedBricksByCharacter = new Dictionary<Character, HashSet<Brick>>();
+
     private int maxBricksPerCharacter;
+    private bool isInitialized;
+
+    private void Awake()
+    {
+        if (stageController == null)
+        {
+            stageController = GetComponentInParent<StageController>();
+        }
+    }
 
     private void Start()
     {
         GenerateGrid();
-        positions = positions.OrderBy(x => Random.value).ToList();
-
-        SpawnFull();
+        RecalculateMaxBricksPerCharacter();
         StartCoroutine(FillRoutine());
+        isInitialized = true;
+
+        foreach (Character character in characters.ToList())
+        {
+            RegisterCharacter(character);
+        }
     }
 
     void GenerateGrid()
@@ -42,61 +57,44 @@ public class BrickSpawner : MonoBehaviour
         {
             for (int z = 0; z < height; z++)
             {
-                Vector3 pos = root.position + new Vector3(
-                    x * spacing,
-                    0.07f,
-                    z * spacing
-                );
-
+                Vector3 pos = root.position + new Vector3(x * spacing, 0.07f, z * spacing);
                 positions.Add(pos);
                 emptyPositions.Add(pos);
             }
         }
     }
 
-    void SpawnFull()
+    void SpawnInitialBricks(Character character)
     {
-        positions = positions.OrderBy(x => Random.value).ToList();
-        
-        List<Character> validCharacters = characters.Where(c => c != null).ToList();
-        int validCount = validCharacters.Count;
-        int totalCharacters = characters.Count;
-        int totalPositions = positions.Count;
+        if (character == null || maxBricksPerCharacter <= 0) return;
 
-        if (validCount == 0) return;
+        ShufflePositions();
 
-        // Tổng số gạch cho tất cả character hợp lệ
-        int bricksToSpawn = Mathf.RoundToInt(totalPositions * ((float)validCount / totalCharacters));
-        maxBricksPerCharacter = bricksToSpawn / validCount;
-
-        int posIndex = 0;
-
-        foreach (Character character in validCharacters)
+        for (int i = characterBrickCount[character]; i < maxBricksPerCharacter; i++)
         {
-            characterBrickCount[character] = 0; // Khởi tạo count
+            if (emptyPositions.Count == 0) break;
 
-            int numBricks = maxBricksPerCharacter;
-            for (int i = 0; i < numBricks; i++)
-            {
-                if (posIndex >= positions.Count) break;
-
-                Vector3 pos = positions[posIndex];
-                SpawnBrick(pos, character);
-                posIndex++;
-            }
+            int randIndex = Random.Range(0, emptyPositions.Count);
+            Vector3 pos = GetRandomEmptyPosition(randIndex);
+            SpawnBrick(pos, character);
         }
     }
 
-    // Đổi tham số từ Player thành Character
     void SpawnBrick(Vector3 pos, Character character)
     {
         if (character == null || !emptyPositions.Contains(pos)) return;
 
         if (!characterBrickCount.ContainsKey(character))
+        {
             characterBrickCount[character] = 0;
+        }
 
-        if (characterBrickCount[character] >= maxBricksPerCharacter)
-            return; 
+        if (!spawnedBricksByCharacter.ContainsKey(character))
+        {
+            spawnedBricksByCharacter[character] = new HashSet<Brick>();
+        }
+
+        if (characterBrickCount[character] >= maxBricksPerCharacter) return;
 
         GameObject brick = SimplePool.Spawn(brickKey, pos, Quaternion.identity);
         brick.transform.SetParent(root);
@@ -106,6 +104,8 @@ public class BrickSpawner : MonoBehaviour
         {
             brickScript.spawnPos = pos;
             brickScript.SetOwnerColor(character.characterColor);
+            brickScript.SetSource(this, stageController);
+            spawnedBricksByCharacter[character].Add(brickScript);
         }
 
         emptyPositions.Remove(pos);
@@ -117,27 +117,87 @@ public class BrickSpawner : MonoBehaviour
         if (!emptyPositions.Contains(pos))
         {
             emptyPositions.Add(pos);
-            
-            if (characterBrickCount.ContainsKey(character))
+
+            if (character != null && characterBrickCount.ContainsKey(character))
             {
                 characterBrickCount[character]--;
             }
         }
+
+        Brick brick = FindTrackedBrick(pos, character);
+        if (brick != null && spawnedBricksByCharacter.ContainsKey(character))
+        {
+            spawnedBricksByCharacter[character].Remove(brick);
+        }
+    }
+
+    public void RegisterCharacter(Character character)
+    {
+        if (character == null) return;
+
+        if (!characters.Contains(character))
+        {
+            int emptySlotIndex = characters.FindIndex(c => c == null);
+
+            if (emptySlotIndex >= 0)
+            {
+                characters[emptySlotIndex] = character;
+            }
+            else
+            {
+                characters.Add(character);
+            }
+        }
+
+        if (!characterBrickCount.ContainsKey(character))
+        {
+            characterBrickCount[character] = 0;
+        }
+
+        if (!spawnedBricksByCharacter.ContainsKey(character))
+        {
+            spawnedBricksByCharacter[character] = new HashSet<Brick>();
+        }
+
+        RecalculateMaxBricksPerCharacter();
+
+        if (isInitialized)
+        {
+            SpawnInitialBricks(character);
+        }
+    }
+
+    public void UnregisterCharacter(Character character)
+    {
+        if (character == null) return;
+
+        int characterIndex = characters.FindIndex(c => c == character);
+        if (characterIndex >= 0)
+        {
+            characters[characterIndex] = null;
+        }
+
+        DespawnRemainingBricks(character);
+        RecalculateMaxBricksPerCharacter();
     }
 
     IEnumerator FillRoutine()
     {
-        List<Character> validCharacters = characters.Where(c => c != null).ToList();
-
         while (true)
         {
+            List<Character> validCharacters = characters.Where(c => c != null).ToList();
+
             foreach (Character character in validCharacters)
             {
+                if (!characterBrickCount.ContainsKey(character))
+                {
+                    characterBrickCount[character] = 0;
+                }
+
                 if (characterBrickCount[character] < maxBricksPerCharacter && emptyPositions.Count > 0)
                 {
                     int randIndex = Random.Range(0, emptyPositions.Count);
                     Vector3 pos = GetRandomEmptyPosition(randIndex);
-
                     SpawnBrick(pos, character);
                 }
             }
@@ -149,11 +209,53 @@ public class BrickSpawner : MonoBehaviour
     Vector3 GetRandomEmptyPosition(int index)
     {
         int i = 0;
-        foreach (var pos in emptyPositions)
+        foreach (Vector3 pos in emptyPositions)
         {
             if (i == index) return pos;
             i++;
         }
+
         return Vector3.zero;
+    }
+
+    void RecalculateMaxBricksPerCharacter()
+    {
+        int totalSlots = characters.Count;
+        maxBricksPerCharacter = totalSlots > 0 ? Mathf.Max(1, positions.Count / totalSlots) : 0;
+    }
+
+    void ShufflePositions()
+    {
+        positions.Sort((a, b) => Random.value.CompareTo(Random.value));
+    }
+
+    void DespawnRemainingBricks(Character character)
+    {
+        if (character == null || !spawnedBricksByCharacter.TryGetValue(character, out HashSet<Brick> bricks)) return;
+
+        Brick[] remainingBricks = bricks.Where(brick => brick != null && brick.gameObject.activeInHierarchy).ToArray();
+        foreach (Brick brick in remainingBricks)
+        {
+            emptyPositions.Add(brick.spawnPos);
+            SimplePool.Despawn(brick.gameObject);
+        }
+
+        bricks.Clear();
+        characterBrickCount[character] = 0;
+    }
+
+    Brick FindTrackedBrick(Vector3 pos, Character character)
+    {
+        if (character == null || !spawnedBricksByCharacter.TryGetValue(character, out HashSet<Brick> bricks)) return null;
+
+        foreach (Brick brick in bricks)
+        {
+            if (brick != null && brick.spawnPos == pos)
+            {
+                return brick;
+            }
+        }
+
+        return null;
     }
 }
