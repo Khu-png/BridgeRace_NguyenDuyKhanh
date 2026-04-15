@@ -1,16 +1,21 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class BridgeWall : MonoBehaviour
 {
     [SerializeField] private Bridge bridge;
     [SerializeField] private StageController nextStage;
+    [SerializeField] private int maxEnemyBuilders = 2;
     
     public float stepLength = 1f;
     public float stepHeight = 0.2f;
     
     private bool isProcessing;
     private Vector3 startPosition;
-    
+    private int filledCount;
+    private readonly HashSet<Enemy> reservedEnemies = new HashSet<Enemy>();
+    public Bridge Bridge => bridge;
+    public StageController NextStage => nextStage;
     private void Awake()
     {
         startPosition = transform.position;
@@ -23,38 +28,77 @@ public class BridgeWall : MonoBehaviour
     
     public void OnBridgeTriggered(Bridge other, Character character)
     {
-        if (bridge == null || character == null || character.BrickCount <= 0) return;
+        TryAdvance(character);
+    }
 
-        if (bridge.BuildStep())
+    public void TryAdvance(Character character)
+    {
+        if (bridge == null || character == null) return;
+        if (!bridge.IsFull()) return;
+
+        bridge.Retire();
+
+        if (character is Enemy enemy)
         {
-            character.RemoveBrick();
-            
-            GameObject builtBrick = bridge.bricks[bridge.currentIndex - 1];
-            foreach (var mr in builtBrick.GetComponentsInChildren<MeshRenderer>())
-            {
-                mr.material = new Material(mr.material);
-                mr.material.color = character.characterColor;
-            }
-            
-            MoveWall();
-            
-            if (bridge.currentIndex == bridge.brickCount)
-            {
-                Debug.Log($"{name} completed bridge. nextStage={(nextStage != null ? nextStage.name : "None")}, character={character.name}");
-                character.SetCurrentStage(nextStage);
-                EndPoint();
-            }
+            ReleaseEnemySlot(enemy);
+            enemy.CrossBridge(bridge, nextStage);
         }
+        else
+        {
+            character.SetCurrentStage(nextStage);
+        }
+
+        EndPoint();
     }
     
-    public void MoveWall()
+    public void MoveWallToIndex(int brickIndex)
     {
-        transform.position += transform.forward * stepLength;
-        transform.position += transform.up * stepHeight;
+        if (bridge == null) return;
+
+        filledCount = Mathf.Clamp(brickIndex + 1, 0, bridge.brickCount);
+
+        if (filledCount >= bridge.brickCount)
+        {
+            EndPoint();
+            return;
+        }
+
+        transform.position =
+            startPosition +
+            transform.forward * (stepLength * filledCount) +
+            transform.up * (stepHeight * filledCount);
     }
 
     public void EndPoint()
     {
         transform.position = startPosition;
+        filledCount = 0;
+    }
+
+    public void ResetProgressToStart()
+    {
+        transform.position = startPosition;
+        filledCount = 0;
+    }
+
+    public bool CanAcceptEnemy(Enemy enemy)
+    {
+        if (enemy == null) return false;
+        if (bridge == null || bridge.IsRetired || bridge.IsFull()) return false;
+        if (reservedEnemies.Contains(enemy)) return true;
+        return reservedEnemies.Count < maxEnemyBuilders;
+    }
+
+    public bool TryReserveEnemySlot(Enemy enemy)
+    {
+        if (!CanAcceptEnemy(enemy)) return false;
+        reservedEnemies.Add(enemy);
+        return true;
+    }
+
+    public void ReleaseEnemySlot(Enemy enemy)
+    {
+        if (enemy == null) return;
+        reservedEnemies.Remove(enemy);
     }
 }

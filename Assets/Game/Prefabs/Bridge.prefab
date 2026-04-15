@@ -143,8 +143,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 14.723302, z: 1}
+  m_Center: {x: 0, y: 6.86165, z: 0}
 --- !u!1 &2017522154003185189
 GameObject:
   m_ObjectHideFlags: 0
@@ -156,7 +156,7 @@ GameObject:
   - component: {fileID: 2871108092655615673}
   - component: {fileID: 5802940648837617124}
   - component: {fileID: 4383968196442194829}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: BridgeWall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -197,8 +197,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.5540986, y: 1.3431165, z: 0.21691418}
-  m_Center: {x: -0.004215002, y: 0.7015976, z: -0.060839176}
+  m_Size: {x: 0.5540986, y: 1.3431165, z: 0.3096056}
+  m_Center: {x: -0.004215002, y: 0.7015976, z: -0.014493465}
 --- !u!114 &4383968196442194829
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -212,6 +212,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BridgeWall
   bridge: {fileID: 4930749166817067132}
+  nextStage: {fileID: 0}
   stepLength: 0.22
   stepHeight: 0.05
 --- !u!1 &3226218420327776887
@@ -324,8 +325,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 14.7233, z: 1}
+  m_Center: {x: 0, y: 6.86165, z: 0}
 --- !u!1 &4393379005459406860
 GameObject:
   m_ObjectHideFlags: 0

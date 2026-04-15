@@ -32,4 +32,58 @@ public class StageController : MonoBehaviour
             brickSpawner.UnregisterCharacter(character);
         }
     }
+
+    public BridgeWall GetClosestAvailableBridgeWall(Vector3 fromPosition)
+    {
+        BridgeWall[] bridgeWalls = GetComponentsInChildren<BridgeWall>();
+        BridgeWall closestWall = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (BridgeWall wall in bridgeWalls)
+        {
+            if (wall == null || !wall.enabled) continue;
+
+            Bridge bridge = wall.GetComponent<Bridge>() ?? wall.GetComponentInParent<Bridge>();
+            if (bridge == null || bridge.IsRetired || bridge.currentIndex >= bridge.brickCount) continue;
+
+            float sqrDistance = (wall.transform.position - fromPosition).sqrMagnitude;
+            if (sqrDistance < closestDistance)
+            {
+                closestDistance = sqrDistance;
+                closestWall = wall;
+            }
+        }
+
+        return closestWall;
+    }
+
+    public BridgeWall GetBestBridgeWallForEnemy(Vector3 fromPosition, Enemy enemy)
+    {
+        BridgeWall[] bridgeWalls = GetComponentsInChildren<BridgeWall>();
+        BridgeWall bestWall = null;
+        int bestBuiltBrickCount = -1;
+        float bestDistance = float.MaxValue;
+
+        foreach (BridgeWall wall in bridgeWalls)
+        {
+            if (wall == null || !wall.enabled) continue;
+            if (enemy != null && !wall.CanAcceptEnemy(enemy)) continue;
+
+            Bridge bridge = wall.GetComponent<Bridge>() ?? wall.GetComponentInParent<Bridge>();
+            if (bridge == null || bridge.IsRetired || bridge.currentIndex >= bridge.brickCount) continue;
+
+            int builtBrickCount = bridge.CountBuiltBricks();
+            float sqrDistance = (wall.transform.position - fromPosition).sqrMagnitude;
+
+            if (builtBrickCount > bestBuiltBrickCount ||
+                (builtBrickCount == bestBuiltBrickCount && sqrDistance < bestDistance))
+            {
+                bestBuiltBrickCount = builtBrickCount;
+                bestDistance = sqrDistance;
+                bestWall = wall;
+            }
+        }
+
+        return bestWall;
+    }
 }

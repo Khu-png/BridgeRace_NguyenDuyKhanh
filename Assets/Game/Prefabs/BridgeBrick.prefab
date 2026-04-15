@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5674238127786529699}
+  - component: {fileID: 5380781169463059750}
+  - component: {fileID: 5691136392546406307}
   m_Layer: 0
   m_Name: BridgeBrick
   m_TagString: Untagged
@@ -32,6 +34,40 @@ Transform:
   - {fileID: 3199968215437453694}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &5380781169463059750
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7024601903705512382}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.47959167, y: 0.40742016, z: 0.24509338}
+  m_Center: {x: -0.012930423, y: 0.21268553, z: -0.06745331}
+--- !u!114 &5691136392546406307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7024601903705512382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba1d2ccf30566a04084e22942b621ecb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BridgeBrick
+  modelRoot: {fileID: 0}
 --- !u!1001 &3162137572085190293
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -83,6 +119,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
       propertyPath: m_Name
       value: Brick
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

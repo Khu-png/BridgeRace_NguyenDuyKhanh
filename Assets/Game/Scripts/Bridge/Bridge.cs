@@ -22,10 +22,25 @@ public class Bridge : MonoBehaviour
     [Header("Build brick")]
     public List<GameObject> bricks = new List<GameObject>();
     public int currentIndex = 0;
+
+    [Header("Stage")]
+    [SerializeField] private StageController sourceStage;
+
+    private BridgeWall bridgeWall;
+    private bool isRetired;
+    public StageController SourceStage => sourceStage;
+    public bool IsRetired => isRetired;
     
     
     void Awake()
     {
+        bridgeWall = GetComponentInChildren<BridgeWall>();
+
+        if (sourceStage == null)
+        {
+            sourceStage = GetComponentInParent<StageController>();
+        }
+
         GenerateBridge();
         GenerateRamp();
     }
@@ -42,8 +57,13 @@ public class Bridge : MonoBehaviour
 
             brick.transform.localPosition = localPos;
             brick.transform.localRotation = Quaternion.identity;
+            brick.SetActive(true);
 
-            brick.SetActive(false); 
+            BridgeBrick bridgeBrick = brick.GetComponent<BridgeBrick>();
+            if (bridgeBrick != null)
+            {
+                bridgeBrick.Initialize(this, i);
+            }
 
             bricks.Add(brick);
 
@@ -81,18 +101,233 @@ public class Bridge : MonoBehaviour
     }
     
     public bool CanBuild() => currentIndex < bricks.Count;
-    
-    public bool BuildStep()
+    public bool IsFull() => currentIndex >= bricks.Count;
+    public GameObject GetCurrentBrick()
     {
-        if (currentIndex >= bricks.Count) return false;
-
-        bricks[currentIndex].SetActive(true);
-        currentIndex++;
-        return true;
+        return GetBrickAtIndex(currentIndex);
     }
 
-    public void NextStep()
+    public GameObject GetBrickAtIndex(int index)
     {
-        currentIndex++;
+        if (index < 0 || index >= bricks.Count)
+        {
+            return null;
+        }
+
+        return bricks[index];
+    }
+
+    public bool IsCurrentBrickActive()
+    {
+        GameObject currentBrick = GetCurrentBrick();
+        if (currentBrick == null) return false;
+
+        BridgeBrick bridgeBrick = currentBrick.GetComponent<BridgeBrick>();
+        return bridgeBrick != null ? bridgeBrick.IsRevealed : currentBrick.activeSelf;
+    }
+
+    public bool IsBrickActiveAtIndex(int index)
+    {
+        GameObject brick = GetBrickAtIndex(index);
+        if (brick == null) return false;
+
+        BridgeBrick bridgeBrick = brick.GetComponent<BridgeBrick>();
+        return bridgeBrick != null ? bridgeBrick.IsRevealed : brick.activeSelf;
+    }
+
+    public bool IsCurrentBrickOwnedBy(Color color)
+    {
+        return IsBrickOwnedBy(index: currentIndex, color);
+    }
+
+    public bool IsBrickOwnedBy(int index, Color color)
+    {
+        GameObject currentBrick = GetBrickAtIndex(index);
+        if (currentBrick == null)
+        {
+            return false;
+        }
+
+        BridgeBrick bridgeBrick = currentBrick.GetComponent<BridgeBrick>();
+        if (bridgeBrick != null)
+        {
+            return bridgeBrick.IsOwnedBy(color);
+        }
+
+        if (!currentBrick.activeSelf)
+        {
+            return false;
+        }
+
+        MeshRenderer renderer = currentBrick.GetComponentInChildren<MeshRenderer>();
+        if (renderer == null)
+        {
+            return false;
+        }
+
+        return Vector4.Distance(renderer.material.color, color) <= 0.01f;
+    }
+
+    public void PaintCurrentBrick(Color color)
+    {
+        PaintBrickAtIndex(currentIndex, color);
+    }
+
+    public void PaintBrickAtIndex(int index, Color color)
+    {
+        GameObject currentBrick = GetBrickAtIndex(index);
+        if (currentBrick == null) return;
+
+        BridgeBrick bridgeBrick = currentBrick.GetComponent<BridgeBrick>();
+        if (bridgeBrick != null)
+        {
+            bridgeBrick.RevealAndPaint(color);
+        }
+        else
+        {
+            if (!currentBrick.activeSelf)
+            {
+                currentBrick.SetActive(true);
+            }
+
+            foreach (MeshRenderer renderer in currentBrick.GetComponentsInChildren<MeshRenderer>())
+            {
+                renderer.material = new Material(renderer.material);
+                renderer.material.color = color;
+            }
+        }
+
+        if (index >= currentIndex)
+        {
+            currentIndex = index + 1;
+        }
+    }
+
+    public int CountBuiltBricksByColor(Color color)
+    {
+        int count = 0;
+
+        foreach (GameObject brick in bricks)
+        {
+            if (brick == null) continue;
+
+            BridgeBrick bridgeBrick = brick.GetComponent<BridgeBrick>();
+            if (bridgeBrick != null && !bridgeBrick.IsRevealed) continue;
+            if (bridgeBrick == null && !brick.activeSelf) continue;
+
+            MeshRenderer renderer = brick.GetComponentInChildren<MeshRenderer>();
+            if (renderer == null) continue;
+
+            if (Vector4.Distance(renderer.material.color, color) <= 0.01f)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public int CountBuiltBricks()
+    {
+        int count = 0;
+
+        foreach (GameObject brick in bricks)
+        {
+            if (brick == null) continue;
+
+            BridgeBrick bridgeBrick = brick.GetComponent<BridgeBrick>();
+            if (bridgeBrick != null)
+            {
+                if (bridgeBrick.IsRevealed)
+                {
+                    count++;
+                }
+
+                continue;
+            }
+
+            if (brick.activeSelf)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public Vector3 GetBuildPosition()
+    {
+        if (startPoint == null)
+        {
+            return transform.position;
+        }
+
+        Vector3 step = startPoint.up * stepHeight + startPoint.forward * stepLength;
+        return startPoint.position + step * currentIndex;
+    }
+
+    public void RegisterBrickProgress(int index)
+    {
+        if (isRetired) return;
+
+        if (index >= currentIndex)
+        {
+            currentIndex = index + 1;
+        }
+    }
+
+    public void MoveWallForward(int brickIndex)
+    {
+        if (isRetired) return;
+
+        if (bridgeWall != null)
+        {
+            bridgeWall.MoveWallToIndex(brickIndex);
+        }
+    }
+
+    public void TryComplete(Character character)
+    {
+        if (bridgeWall != null)
+        {
+            bridgeWall.TryAdvance(character);
+        }
+    }
+
+    public void Retire()
+    {
+        isRetired = true;
+    }
+
+    public Vector3 GetBridgeEndPosition()
+    {
+        if (startPoint == null)
+        {
+            return transform.position;
+        }
+
+        Vector3 step = startPoint.up * stepHeight + startPoint.forward * stepLength;
+        return startPoint.position + step * brickCount;
+    }
+
+    public Vector3 GetBuildMoveDirection()
+    {
+        if (startPoint == null)
+        {
+            return transform.forward;
+        }
+
+        Vector3 direction = startPoint.up * stepHeight + startPoint.forward * stepLength;
+        return direction.sqrMagnitude > 0.001f ? direction.normalized : startPoint.forward;
+    }
+
+    public Vector3 GetBridgeEntryPosition(float backwardOffset = 0.35f)
+    {
+        if (startPoint == null)
+        {
+            return transform.position;
+        }
+
+        return startPoint.position - startPoint.forward * backwardOffset;
     }
 }

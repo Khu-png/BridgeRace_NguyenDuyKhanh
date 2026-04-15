@@ -2,8 +2,6 @@ using UnityEngine;
 
 public class PlayerCollector : MonoBehaviour
 {
-    [SerializeField] private Color characterColor;
-
     private Character _character;
 
     private void Awake()
@@ -18,8 +16,8 @@ public class PlayerCollector : MonoBehaviour
 
         Brick brick = other.GetComponent<Brick>();
         if (brick == null) return;
-        
-        if (Vector4.Distance(brick.ownerColor, characterColor) > 0.01f) return;
+
+        if (!brick.CanBeCollectedBy(_character.characterColor)) return;
         
         Vector3 pickupPosition = brick.transform.position;
         _character.CollectBrick(pickupPosition);

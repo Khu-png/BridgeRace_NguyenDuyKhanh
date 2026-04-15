@@ -226,7 +226,13 @@ public class BrickSpawner : MonoBehaviour
 
     void ShufflePositions()
     {
-        positions.Sort((a, b) => Random.value.CompareTo(Random.value));
+        for (int i = positions.Count - 1; i > 0; i--)
+        {
+            int randomIndex = Random.Range(0, i + 1);
+            Vector3 temp = positions[i];
+            positions[i] = positions[randomIndex];
+            positions[randomIndex] = temp;
+        }
     }
 
     void DespawnRemainingBricks(Character character)
@@ -242,6 +248,30 @@ public class BrickSpawner : MonoBehaviour
 
         bricks.Clear();
         characterBrickCount[character] = 0;
+    }
+
+    public Brick GetClosestBrick(Vector3 fromPosition, Color color)
+    {
+        Brick closestBrick = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (HashSet<Brick> brickSet in spawnedBricksByCharacter.Values)
+        {
+            foreach (Brick brick in brickSet)
+            {
+                if (brick == null || !brick.gameObject.activeInHierarchy) continue;
+                if (Vector4.Distance(brick.ownerColor, color) > 0.01f) continue;
+
+                float sqrDistance = (brick.transform.position - fromPosition).sqrMagnitude;
+                if (sqrDistance < closestDistance)
+                {
+                    closestDistance = sqrDistance;
+                    closestBrick = brick;
+                }
+            }
+        }
+
+        return closestBrick;
     }
 
     Brick FindTrackedBrick(Vector3 pos, Character character)

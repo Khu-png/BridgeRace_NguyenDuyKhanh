@@ -9,11 +9,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5674238127786529699}
-  - component: {fileID: 2027416582464431555}
   - component: {fileID: 4604633296059968367}
+  - component: {fileID: 6522056554665294809}
   m_Layer: 0
   m_Name: FallBrick
-  m_TagString: Untagged
+  m_TagString: Brick
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -34,18 +34,6 @@ Transform:
   - {fileID: 2867717030576384031}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2027416582464431555
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7024601903705512382}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f8c2f3e13dd48c4bbe0b4af5e79f1c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Brick
 --- !u!65 &4604633296059968367
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -67,6 +55,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.4529903, y: 0.17701292, z: 0.24048907}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6522056554665294809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7024601903705512382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f8c2f3e13dd48c4bbe0b4af5e79f1c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Brick
+  meshRenderer: {fileID: 4001168643592819568}
+  ownerColor: {r: 0, g: 0, b: 0, a: 0}
+  spawnPos: {x: 0, y: 0, z: 0}
 --- !u!1001 &2325709051698778100
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -127,5 +130,10 @@ PrefabInstance:
 --- !u!4 &2867717030576384031 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
+  m_PrefabInstance: {fileID: 2325709051698778100}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4001168643592819568 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
   m_PrefabInstance: {fileID: 2325709051698778100}
   m_PrefabAsset: {fileID: 0}

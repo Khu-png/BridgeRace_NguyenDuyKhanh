@@ -16,6 +16,14 @@ public class Player : Character
 
     private void FixedUpdate()
     {
+        RefreshKnockdownState();
+
+        if (IsStunned)
+        {
+            _rigidbody.linearVelocity = Vector3.zero;
+            return;
+        }
+
         Vector3 direction = new Vector3(_joystick.Horizontal, 0, _joystick.Vertical);
 
         if (direction.magnitude > 1f)
