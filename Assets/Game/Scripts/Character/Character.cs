@@ -7,6 +7,9 @@ public class Character : MonoBehaviour
     private const string StackBrickPoolKey = "PlayerBrick";
     private const string DroppedBrickPoolKey = "FallBrick";
     private const string FallbackDroppedBrickPoolKey = "SpawnBrick";
+    private const string FallStateName = "Fall";
+    private const string IdleStateName = "Idle";
+    private const string DanceTriggerName = "Dance";
 
     [Header("Brick Stack")]
     [SerializeField] protected Transform brickHolder;
@@ -15,7 +18,9 @@ public class Character : MonoBehaviour
     [SerializeField] protected Vector3 stackBrickScale = new Vector3(0.9f, 0.9f, 0.9f);
 
     [Header("Color")]
-    public Color characterColor = Color.white;
+    [SerializeField] private ColorDataSO colorData;
+    [SerializeField] private ColorType colorType = ColorType.None;
+    [HideInInspector] public Color characterColor = Color.white;
 
     [Header("Stage")]
     [SerializeField] private StageController currentStage;
@@ -30,8 +35,7 @@ public class Character : MonoBehaviour
     [SerializeField] protected float droppedBrickFlyHeight = 0.35f;
     [SerializeField] protected float droppedBrickCollectDelay = 0.25f;
     [SerializeField] protected Vector3 droppedBrickScale = new Vector3(0.8f, 0.8f, 0.8f);
-    [SerializeField] protected string fallStateName = "Fall";
-    [SerializeField] protected string idleStateName = "Idle";
+    [SerializeField] protected float standUpRecoverDelay = 0.15f;
 
     protected Stack<GameObject> brickStack = new Stack<GameObject>();
     private Coroutine updateRoutine;
@@ -40,15 +44,23 @@ public class Character : MonoBehaviour
     private bool isKnockedDown;
     private bool hasEnteredFallState;
     private bool isBuildingBridge;
+    private bool hasReachedGoal;
 
     public int BrickCount => brickStack.Count;
     public StageController CurrentStage => currentStage;
     public bool IsStunned => isKnockedDown || Time.time < stunEndTime;
     public bool IsBuildingBridge => isBuildingBridge;
+    public bool HasReachedGoal => hasReachedGoal;
 
     protected virtual void Start()
     {
+        ApplyColorSelection();
         CacheAnimator();
+
+        if (currentStage == null)
+        {
+            currentStage = FindClosestStageController();
+        }
 
         if (currentStage != null)
         {
@@ -56,10 +68,16 @@ public class Character : MonoBehaviour
         }
     }
 
+    protected virtual void OnValidate()
+    {
+        ApplyColorSelection();
+    }
+
     public void SetCurrentStage(StageController newStage)
     {
         if (currentStage == newStage) return;
 
+        isBuildingBridge = false;
         currentStage?.UnregisterCharacter(this);
 
         currentStage = newStage;
@@ -89,7 +107,7 @@ public class Character : MonoBehaviour
 
     public bool CanBeKnockedDown()
     {
-        return !isBuildingBridge && Time.time >= lastKnockdownTime + knockdownCooldown;
+        return Time.time >= lastKnockdownTime + knockdownCooldown;
     }
 
     public void SetBridgeBuildingState(bool isBuilding)
@@ -130,13 +148,14 @@ public class Character : MonoBehaviour
         AnimatorStateInfo stateInfo = fallAnimator.GetCurrentAnimatorStateInfo(0);
         bool isInTransition = fallAnimator.IsInTransition(0);
 
-        if (!hasEnteredFallState && stateInfo.IsName(fallStateName))
+        if (!hasEnteredFallState && stateInfo.IsName(FallStateName))
         {
             hasEnteredFallState = true;
         }
 
-        if (hasEnteredFallState && !isInTransition && stateInfo.IsName(idleStateName))
+        if (hasEnteredFallState && !isInTransition && stateInfo.IsName(IdleStateName))
         {
+            stunEndTime = Time.time + standUpRecoverDelay;
             isKnockedDown = false;
             return;
         }
@@ -167,6 +186,26 @@ public class Character : MonoBehaviour
     public void Block(Rigidbody rb)
     {
         rb.linearVelocity = Vector3.zero;
+    }
+
+    public virtual void ReachGoal(Transform goalTransform)
+    {
+        if (goalTransform == null)
+        {
+            return;
+        }
+
+        SetBridgeBuildingState(false);
+        hasReachedGoal = true;
+        StopForGoal();
+        ClearStackBricks();
+        RefreshStackVisuals();
+
+        transform.SetParent(null, true);
+        transform.position = goalTransform.position;
+        transform.rotation = goalTransform.rotation * Quaternion.Euler(0f, 180f, 0f);
+
+        TriggerDanceAnimation();
     }
 
     protected IEnumerator UpdateStackSmooth()
@@ -209,6 +248,62 @@ public class Character : MonoBehaviour
         }
     }
 
+    private StageController FindClosestStageController()
+    {
+        StageController[] stages = FindObjectsByType<StageController>(FindObjectsSortMode.None);
+        StageController closestStage = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (StageController stage in stages)
+        {
+            if (stage == null)
+            {
+                continue;
+            }
+
+            float sqrDistance = (stage.transform.position - transform.position).sqrMagnitude;
+            if (sqrDistance < closestDistance)
+            {
+                closestDistance = sqrDistance;
+                closestStage = stage;
+            }
+        }
+
+        return closestStage;
+    }
+
+    private void ApplyColorSelection()
+    {
+        if (colorData == null || colorType == ColorType.None)
+        {
+            return;
+        }
+
+        Material selectedMaterial = colorData.GetMat(colorType);
+        if (selectedMaterial == null)
+        {
+            return;
+        }
+
+        characterColor = selectedMaterial.color;
+
+        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null) continue;
+            if (brickHolder != null && renderer.transform.IsChildOf(brickHolder)) continue;
+
+            if (Application.isPlaying)
+            {
+                renderer.material = selectedMaterial;
+            }
+            else
+            {
+                renderer.sharedMaterial = selectedMaterial;
+            }
+        }
+    }
+
     private void TriggerFallAnimation()
     {
         if (fallAnimator == null) return;
@@ -216,6 +311,29 @@ public class Character : MonoBehaviour
         fallAnimator.ResetTrigger("Idle");
         fallAnimator.ResetTrigger("Run");
         fallAnimator.SetTrigger("Fall");
+    }
+
+    protected virtual void StopForGoal()
+    {
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            return;
+        }
+
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+
+    private void TriggerDanceAnimation()
+    {
+        CacheAnimator();
+        if (fallAnimator == null) return;
+
+        fallAnimator.ResetTrigger("Idle");
+        fallAnimator.ResetTrigger("Run");
+        fallAnimator.ResetTrigger("Fall");
+        fallAnimator.SetTrigger(DanceTriggerName);
     }
 
     private GameObject SpawnStackBrick(Vector3 pickupPosition)

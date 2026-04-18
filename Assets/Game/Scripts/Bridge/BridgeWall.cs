@@ -24,6 +24,15 @@ public class BridgeWall : MonoBehaviour
         {
             bridge = GetComponent<Bridge>() ?? GetComponentInParent<Bridge>();
         }
+
+        if (nextStage == null)
+        {
+            Goal goal = FindFirstObjectByType<Goal>();
+            if (goal != null)
+            {
+                nextStage = goal.GetComponent<StageController>() ?? goal.GetComponentInParent<StageController>();
+            }
+        }
     }
     
     public void OnBridgeTriggered(Bridge other, Character character)
@@ -35,15 +44,11 @@ public class BridgeWall : MonoBehaviour
     {
         if (bridge == null || character == null) return;
         if (!bridge.IsFull()) return;
+        if (character is Enemy) return;
 
         bridge.Retire();
 
-        if (character is Enemy enemy)
-        {
-            ReleaseEnemySlot(enemy);
-            enemy.CrossBridge(bridge, nextStage);
-        }
-        else
+        if (nextStage != null)
         {
             character.SetCurrentStage(nextStage);
         }

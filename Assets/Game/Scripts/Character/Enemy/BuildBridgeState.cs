@@ -35,13 +35,32 @@ public class BuildBridgeState : IEnemyState
 
         if (enemy.TargetBridgeWall.Bridge != null && enemy.TargetBridgeWall.Bridge.IsFull())
         {
-            if (hasReachedBuildPoint || isMovingManually)
+            if (hasReachedBuildPoint)
             {
-                enemy.TargetBridgeWall.TryAdvance(enemy);
+                Bridge completedBridge = enemy.TargetBridgeWall.Bridge;
+                StageController nextStage = enemy.TargetBridgeWall.NextStage;
+
+                enemy.TargetBridgeWall.ReleaseEnemySlot(enemy);
+
+                if (nextStage != null)
+                {
+                    enemy.CrossBridge(completedBridge, nextStage);
+                    return;
+                }
+            }
+
+            if (enemy.TrySnapToNavMesh())
+            {
+                enemy.SetBridgeBuildingState(false);
+                enemy.SetTransformDrivenMovement(false);
+                enemy.EnableAgentMovement();
+                enemy.ChangeState(new FindBrickState(enemy));
             }
             else
             {
-                enemy.ChangeState(new FindBrickState(enemy));
+                enemy.SetBridgeBuildingState(true);
+                enemy.SetTransformDrivenMovement(true);
+                enemy.MoveBackFromBridge();
             }
             return;
         }

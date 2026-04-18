@@ -113,9 +113,6 @@ public class BridgeBrick : MonoBehaviour
         if (character == null) return;
 
         charactersInside.Remove(character);
-        if (bridge == null || bridge.SourceStage == null || character.CurrentStage == bridge.SourceStage)
-        {
-            character.SetBridgeBuildingState(false);
-        }
+        character.SetBridgeBuildingState(false);
     }
 }

@@ -1,8 +1,15 @@
 fileFormatVersion: 2
-guid: dbe7b1c9085c94c4ca974e3601ac4b3f
+guid: 308b365ccf9efb8469d22311adf6d203
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 2100000
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 363440
+  packageName: Hypercasual Characters Rigged
+  packageVersion: 1.0
+  assetPath: Assets/Floreswa/Materials/Black.mat
+  uploadId: 869010

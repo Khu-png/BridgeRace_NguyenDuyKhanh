@@ -21,7 +21,6 @@ public class EnemyCheck : MonoBehaviour
 
         if (owner is Enemy ownerEnemy && ownerEnemy.IsTransformDrivenMovement) return;
         if (otherCharacter is Enemy otherEnemy && otherEnemy.IsTransformDrivenMovement) return;
-        if (owner.IsBuildingBridge || otherCharacter.IsBuildingBridge) return;
         if (owner.IsStunned || otherCharacter.IsStunned) return;
         if (owner.BrickCount == otherCharacter.BrickCount) return;
 

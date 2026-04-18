@@ -67,6 +67,12 @@ public class Enemy : Character
     {
         if (agent == null || CurrentStage == null || stateManager == null || isCrossingBridge) return;
 
+        if (HasReachedGoal)
+        {
+            didManualMoveThisFrame = false;
+            return;
+        }
+
         RefreshKnockdownState();
 
         if (IsStunned)
@@ -132,6 +138,26 @@ public class Enemy : Character
         if (closestBrick == null) return;
 
         agent.SetDestination(closestBrick.transform.position);
+    }
+
+    public bool ShouldMoveToGoal()
+    {
+        return CurrentStage != null && CurrentStage.BrickSpawner == null && FindFirstObjectByType<Goal>() != null;
+    }
+
+    public void RefreshGoalTarget()
+    {
+        Goal goal = FindFirstObjectByType<Goal>();
+        if (goal == null)
+        {
+            return;
+        }
+
+        if (agent != null && agent.enabled && ShouldRefreshDestination())
+        {
+            agent.SetDestination(goal.transform.position);
+            ResetRefreshCooldown();
+        }
     }
 
     public bool TryPrepareBuild()
@@ -331,6 +357,11 @@ public class Enemy : Character
         return false;
     }
 
+    public void StopAllMovement()
+    {
+        StopForGoal();
+    }
+
     protected override void OnKnockedDown()
     {
         if (agent != null && agent.enabled)
@@ -338,5 +369,37 @@ public class Enemy : Character
             agent.isStopped = true;
             agent.nextPosition = transform.position;
         }
+    }
+
+    protected override void StopForGoal()
+    {
+        if (agent != null)
+        {
+            if (agent.enabled)
+            {
+                agent.isStopped = true;
+                agent.nextPosition = transform.position;
+                agent.enabled = false;
+            }
+        }
+
+        if (enemyRigidbody != null)
+        {
+            if (!enemyRigidbody.isKinematic)
+            {
+                enemyRigidbody.linearVelocity = Vector3.zero;
+                enemyRigidbody.angularVelocity = Vector3.zero;
+            }
+        }
+
+        StopAllCoroutines();
+        stateManager = null;
+        targetBridgeWall = null;
+        isCrossingBridge = false;
+        didManualMoveThisFrame = false;
+        isTransformDrivenMovement = false;
+        isRunning = false;
+        SetTransformDrivenMovement(false);
+        enabled = false;
     }
 }

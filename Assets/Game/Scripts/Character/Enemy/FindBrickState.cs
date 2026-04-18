@@ -16,6 +16,12 @@ public class FindBrickState : IEnemyState
 
     public void OnExecute()
     {
+        if (enemy.ShouldMoveToGoal())
+        {
+            enemy.RefreshGoalTarget();
+            return;
+        }
+
         if (enemy.HasEnoughBricksToBuild())
         {
             enemy.ChangeState(new BuildBridgeState(enemy));

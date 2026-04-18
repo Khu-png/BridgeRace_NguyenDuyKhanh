@@ -61,7 +61,7 @@ public class StageController : MonoBehaviour
     {
         BridgeWall[] bridgeWalls = GetComponentsInChildren<BridgeWall>();
         BridgeWall bestWall = null;
-        int bestBuiltBrickCount = -1;
+        int bestOwnedBrickCount = -1;
         float bestDistance = float.MaxValue;
 
         foreach (BridgeWall wall in bridgeWalls)
@@ -72,13 +72,13 @@ public class StageController : MonoBehaviour
             Bridge bridge = wall.GetComponent<Bridge>() ?? wall.GetComponentInParent<Bridge>();
             if (bridge == null || bridge.IsRetired || bridge.currentIndex >= bridge.brickCount) continue;
 
-            int builtBrickCount = bridge.CountBuiltBricks();
+            int ownedBrickCount = bridge.CountBuiltBricksByColor(enemy.characterColor);
             float sqrDistance = (wall.transform.position - fromPosition).sqrMagnitude;
 
-            if (builtBrickCount > bestBuiltBrickCount ||
-                (builtBrickCount == bestBuiltBrickCount && sqrDistance < bestDistance))
+            if (ownedBrickCount > bestOwnedBrickCount ||
+                (ownedBrickCount == bestOwnedBrickCount && sqrDistance < bestDistance))
             {
-                bestBuiltBrickCount = builtBrickCount;
+                bestOwnedBrickCount = ownedBrickCount;
                 bestDistance = sqrDistance;
                 bestWall = wall;
             }

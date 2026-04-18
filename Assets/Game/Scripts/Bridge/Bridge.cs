@@ -1,14 +1,19 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Collections;
 
 public class Bridge : MonoBehaviour
 {
+    private const string GroundLayerName = "Ground";
+    private const string DefaultLayerName = "Default";
+
     [Header("Ramp Settings")]
     [SerializeField] private GameObject rampPrefab;
     [SerializeField] private float rampWidth = 0.4f;
     [SerializeField] private float rampThickness = 0.2f;
     [SerializeField] private float offsetUp;
     [SerializeField] private float offsetBack;
+    [SerializeField] private float retireGroundDelay = 1.2f;
 
     [Header("Brick Settings")]
     public GameObject brickPrefab;
@@ -27,6 +32,7 @@ public class Bridge : MonoBehaviour
     [SerializeField] private StageController sourceStage;
 
     private BridgeWall bridgeWall;
+    private GameObject generatedRamp;
     private bool isRetired;
     public StageController SourceStage => sourceStage;
     public bool IsRetired => isRetired;
@@ -82,6 +88,12 @@ public class Bridge : MonoBehaviour
         float length = direction.magnitude;
 
         GameObject ramp = Instantiate(rampPrefab, transform);
+        generatedRamp = ramp;
+        int groundLayer = LayerMask.NameToLayer(GroundLayerName);
+        if (groundLayer >= 0)
+        {
+            SetLayerRecursively(ramp, groundLayer);
+        }
         
         ramp.transform.rotation = Quaternion.LookRotation(direction, startPoint.up);
         
@@ -98,6 +110,19 @@ public class Bridge : MonoBehaviour
         
         MeshRenderer mr = ramp.GetComponent<MeshRenderer>();
         if (mr != null) mr.enabled = false;
+    }
+
+    private void SetLayerRecursively(GameObject target, int layer)
+    {
+        if (target == null) return;
+
+        target.layer = layer;
+
+        foreach (Transform child in target.transform)
+        {
+            if (child == null) continue;
+            SetLayerRecursively(child.gameObject, layer);
+        }
     }
     
     public bool CanBuild() => currentIndex < bricks.Count;
@@ -288,6 +313,11 @@ public class Bridge : MonoBehaviour
 
     public void TryComplete(Character character)
     {
+        if (character is Enemy)
+        {
+            return;
+        }
+
         if (bridgeWall != null)
         {
             bridgeWall.TryAdvance(character);
@@ -297,6 +327,25 @@ public class Bridge : MonoBehaviour
     public void Retire()
     {
         isRetired = true;
+
+        if (generatedRamp != null)
+        {
+            StopAllCoroutines();
+            StartCoroutine(DisableRampGroundAfterDelay());
+        }
+    }
+
+    private IEnumerator DisableRampGroundAfterDelay()
+    {
+        yield return new WaitForSeconds(retireGroundDelay);
+
+        if (generatedRamp == null) yield break;
+
+        int defaultLayer = LayerMask.NameToLayer(DefaultLayerName);
+        if (defaultLayer >= 0)
+        {
+            SetLayerRecursively(generatedRamp, defaultLayer);
+        }
     }
 
     public Vector3 GetBridgeEndPosition()
