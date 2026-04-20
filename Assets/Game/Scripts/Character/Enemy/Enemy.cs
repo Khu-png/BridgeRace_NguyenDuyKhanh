@@ -73,6 +73,14 @@ public class Enemy : Character
             return;
         }
 
+        if (GameManager.Instance != null && !GameManager.Instance.IsPlaying)
+        {
+            StopAgentAtCurrentPosition();
+            didManualMoveThisFrame = false;
+            UpdateAnimation();
+            return;
+        }
+
         RefreshKnockdownState();
 
         if (IsStunned)
@@ -86,11 +94,6 @@ public class Enemy : Character
             didManualMoveThisFrame = false;
             UpdateAnimation();
             return;
-        }
-
-        if (agent.enabled && agent.isStopped)
-        {
-            agent.isStopped = false;
         }
 
         didManualMoveThisFrame = false;
@@ -131,18 +134,27 @@ public class Enemy : Character
 
     public void RefreshBrickTarget()
     {
-        BrickSpawner spawner = CurrentStage.BrickSpawner;
-        if (spawner == null) return;
+        BrickSpawner spawner = CurrentBrickSpawner != null ? CurrentBrickSpawner : CurrentStage.BrickSpawner;
+        if (spawner == null)
+        {
+            StopAgentAtCurrentPosition();
+            return;
+        }
 
         Brick closestBrick = spawner.GetClosestBrick(transform.position, characterColor);
-        if (closestBrick == null) return;
+        if (closestBrick == null)
+        {
+            StopAgentAtCurrentPosition();
+            return;
+        }
 
+        agent.isStopped = false;
         agent.SetDestination(closestBrick.transform.position);
     }
 
     public bool ShouldMoveToGoal()
     {
-        return CurrentStage != null && CurrentStage.BrickSpawner == null && FindFirstObjectByType<Goal>() != null;
+        return CurrentStage != null && !CurrentStage.HasBrickSpawners && FindFirstObjectByType<Goal>() != null;
     }
 
     public void RefreshGoalTarget()
@@ -155,6 +167,7 @@ public class Enemy : Character
 
         if (agent != null && agent.enabled && ShouldRefreshDestination())
         {
+            agent.isStopped = false;
             agent.SetDestination(goal.transform.position);
             ResetRefreshCooldown();
         }
@@ -162,24 +175,43 @@ public class Enemy : Character
 
     public bool TryPrepareBuild()
     {
-        targetBridgeWall?.ReleaseEnemySlot(this);
+        targetBridgeWall?.Bridge?.ReleaseEnemy(this);
 
         targetBridgeWall = CurrentStage.GetBestBridgeWallForEnemy(transform.position, this);
-        if (targetBridgeWall == null) return false;
-        if (!targetBridgeWall.TryReserveEnemySlot(this)) return false;
+        if (targetBridgeWall == null)
+        {
+            StopAgentAtCurrentPosition();
+            return false;
+        }
 
         Bridge targetBridge = targetBridgeWall.Bridge;
         if (targetBridge == null) return false;
+        if (!targetBridge.TryReserveEnemy(this)) return false;
 
         buildPoint = targetBridge.GetBridgeEntryPosition();
+        if (!CanReachBuildPoint(buildPoint))
+        {
+            targetBridge.ReleaseEnemy(this);
+            targetBridgeWall = null;
+            StopAgentAtCurrentPosition();
+            return false;
+        }
+
         if (NavMesh.SamplePosition(buildPoint, out NavMeshHit hit, 0.2f, NavMesh.AllAreas))
         {
             buildPoint = hit.position;
         }
         buildMoveDirection = targetBridge.GetBuildMoveDirection();
 
+        agent.isStopped = false;
         agent.SetDestination(buildPoint);
         return true;
+    }
+
+    public bool CanReachBridge(Bridge bridge)
+    {
+        if (bridge == null) return false;
+        return CanReachBuildPoint(bridge.GetBridgeEntryPosition());
     }
 
     public bool IsAtBuildPoint()
@@ -189,7 +221,73 @@ public class Enemy : Character
 
     public void ReturnToBuildPoint()
     {
+        if (agent != null && agent.enabled)
+        {
+            agent.isStopped = false;
+        }
+
         agent.SetDestination(buildPoint);
+    }
+
+    public void StopAgentAtCurrentPosition()
+    {
+        if (agent == null || !agent.enabled)
+        {
+            return;
+        }
+
+        agent.ResetPath();
+        agent.isStopped = true;
+        agent.nextPosition = transform.position;
+    }
+
+    public void PauseMovement()
+    {
+        StopAgentAtCurrentPosition();
+        didManualMoveThisFrame = false;
+
+        if (enemyRigidbody != null && !enemyRigidbody.isKinematic)
+        {
+            enemyRigidbody.linearVelocity = Vector3.zero;
+            enemyRigidbody.angularVelocity = Vector3.zero;
+        }
+
+        UpdateAnimation();
+    }
+
+    public void ResumeMovement()
+    {
+        if (HasReachedGoal || stateManager == null)
+        {
+            return;
+        }
+
+        if (agent != null && agent.enabled && !isCrossingBridge)
+        {
+            agent.nextPosition = transform.position;
+            agent.isStopped = false;
+        }
+    }
+
+    private bool CanReachBuildPoint(Vector3 point)
+    {
+        if (agent == null || !agent.enabled)
+        {
+            return false;
+        }
+
+        if (!NavMesh.SamplePosition(point, out NavMeshHit hit, 0.2f, NavMesh.AllAreas))
+        {
+            return false;
+        }
+
+        NavMeshPath path = new NavMeshPath();
+        if (!agent.CalculatePath(hit.position, path))
+        {
+            return false;
+        }
+
+        return path.status == NavMeshPathStatus.PathComplete;
     }
 
     public bool IsNearDestination()
@@ -245,15 +343,15 @@ public class Enemy : Character
         MoveManually(-buildMoveDirection);
     }
 
-    public void CrossBridge(Bridge bridge, StageController nextStage)
+    public void CrossBridge(Bridge bridge, StageController nextStage, BrickSpawner targetSpawner = null)
     {
         if (bridge == null || nextStage == null || isCrossingBridge) return;
 
-        targetBridgeWall?.ReleaseEnemySlot(this);
-        StartCoroutine(CrossBridgeRoutine(bridge, nextStage));
+        targetBridgeWall?.Bridge?.ReleaseEnemy(this);
+        StartCoroutine(CrossBridgeRoutine(bridge, nextStage, targetSpawner));
     }
 
-    private IEnumerator CrossBridgeRoutine(Bridge bridge, StageController nextStage)
+    private IEnumerator CrossBridgeRoutine(Bridge bridge, StageController nextStage, BrickSpawner targetSpawner)
     {
         isCrossingBridge = true;
         isTransformDrivenMovement = true;
@@ -265,6 +363,17 @@ public class Enemy : Character
 
         while (Vector3.Distance(transform.position, targetPosition) > 0.05f)
         {
+            if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+            {
+                if (agent != null && agent.enabled)
+                {
+                    agent.nextPosition = transform.position;
+                }
+
+                yield return null;
+                continue;
+            }
+
             Vector3 direction = targetPosition - transform.position;
             direction.y = 0f;
 
@@ -283,7 +392,7 @@ public class Enemy : Character
             yield return null;
         }
 
-        SetCurrentStage(nextStage);
+        SetCurrentStage(nextStage, targetSpawner);
 
         EnableAgentMovement();
 
@@ -348,9 +457,28 @@ public class Enemy : Character
 
     public bool TrySnapToNavMesh()
     {
-        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 0.35f, NavMesh.AllAreas))
+        return TrySnapToNavMeshAt(transform.position, 0.35f);
+    }
+
+    public bool TryReturnFromBridgeInstantly(Bridge bridge)
+    {
+        if (bridge != null && TrySnapToNavMeshAt(bridge.GetBridgeEntryPosition(), 1.5f))
+        {
+            return true;
+        }
+
+        return TrySnapToNavMeshAt(transform.position, 1.5f);
+    }
+
+    private bool TrySnapToNavMeshAt(Vector3 samplePosition, float maxDistance)
+    {
+        if (NavMesh.SamplePosition(samplePosition, out NavMeshHit hit, maxDistance, NavMesh.AllAreas))
         {
             transform.position = hit.position;
+            if (agent != null && agent.enabled)
+            {
+                agent.nextPosition = transform.position;
+            }
             return true;
         }
 
@@ -364,6 +492,9 @@ public class Enemy : Character
 
     protected override void OnKnockedDown()
     {
+        targetBridgeWall?.Bridge?.ReleaseEnemy(this);
+        targetBridgeWall = null;
+
         if (agent != null && agent.enabled)
         {
             agent.isStopped = true;
@@ -373,11 +504,21 @@ public class Enemy : Character
 
     protected override void StopForGoal()
     {
+        targetBridgeWall?.Bridge?.ReleaseEnemy(this);
+        targetBridgeWall = null;
+
+        refreshTimer = 0f;
+        buildPoint = transform.position;
+        buildMoveDirection = Vector3.zero;
+
         if (agent != null)
         {
             if (agent.enabled)
             {
+                agent.ResetPath();
                 agent.isStopped = true;
+                agent.updatePosition = false;
+                agent.updateRotation = false;
                 agent.nextPosition = transform.position;
                 agent.enabled = false;
             }
@@ -394,12 +535,17 @@ public class Enemy : Character
 
         StopAllCoroutines();
         stateManager = null;
-        targetBridgeWall = null;
         isCrossingBridge = false;
         didManualMoveThisFrame = false;
         isTransformDrivenMovement = false;
         isRunning = false;
         SetTransformDrivenMovement(false);
+
+        if (animator != null)
+        {
+            animator.applyRootMotion = false;
+        }
+
         enabled = false;
     }
 }

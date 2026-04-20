@@ -1,15 +1,29 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class StageController : MonoBehaviour
 {
-    [SerializeField] private BrickSpawner brickSpawner;
-    public BrickSpawner BrickSpawner => brickSpawner;
+    [SerializeField] private BrickSpawner defaultBrickSpawner;
+    [SerializeField] private List<BrickSpawner> brickSpawners = new List<BrickSpawner>();
+    public BrickSpawner BrickSpawner => GetDefaultBrickSpawner();
+    public bool HasBrickSpawners => GetDefaultBrickSpawner() != null;
 
     private void Awake()
     {
-        if (brickSpawner == null)
+        if (brickSpawners.Count == 0)
         {
-            brickSpawner = GetComponentInChildren<BrickSpawner>();
+            brickSpawners.AddRange(GetComponentsInChildren<BrickSpawner>());
+        }
+
+        brickSpawners.RemoveAll(spawner => spawner == null);
+
+        if (defaultBrickSpawner == null)
+        {
+            defaultBrickSpawner = brickSpawners.Count > 0 ? brickSpawners[0] : null;
+        }
+        else if (!brickSpawners.Contains(defaultBrickSpawner))
+        {
+            brickSpawners.Insert(0, defaultBrickSpawner);
         }
     }
 
@@ -17,9 +31,10 @@ public class StageController : MonoBehaviour
     {
         if (character == null) return;
 
-        if (brickSpawner != null)
+        BrickSpawner spawner = ResolveSpawner(character);
+        if (spawner != null)
         {
-            brickSpawner.RegisterCharacter(character);
+            spawner.RegisterCharacter(character);
         }
     }
 
@@ -27,10 +42,40 @@ public class StageController : MonoBehaviour
     {
         if (character == null) return;
 
-        if (brickSpawner != null)
+        BrickSpawner spawner = ResolveSpawner(character);
+        if (spawner != null)
         {
-            brickSpawner.UnregisterCharacter(character);
+            spawner.UnregisterCharacter(character);
         }
+    }
+
+    public BrickSpawner GetDefaultBrickSpawner()
+    {
+        if (defaultBrickSpawner != null)
+        {
+            return defaultBrickSpawner;
+        }
+
+        for (int i = 0; i < brickSpawners.Count; i++)
+        {
+            if (brickSpawners[i] != null)
+            {
+                return brickSpawners[i];
+            }
+        }
+
+        return null;
+    }
+
+    private BrickSpawner ResolveSpawner(Character character)
+    {
+        BrickSpawner characterSpawner = character.CurrentBrickSpawner;
+        if (characterSpawner != null && brickSpawners.Contains(characterSpawner))
+        {
+            return characterSpawner;
+        }
+
+        return GetDefaultBrickSpawner();
     }
 
     public BridgeWall GetClosestAvailableBridgeWall(Vector3 fromPosition)
@@ -67,9 +112,10 @@ public class StageController : MonoBehaviour
         foreach (BridgeWall wall in bridgeWalls)
         {
             if (wall == null || !wall.enabled) continue;
-            if (enemy != null && !wall.CanAcceptEnemy(enemy)) continue;
 
             Bridge bridge = wall.GetComponent<Bridge>() ?? wall.GetComponentInParent<Bridge>();
+            if (enemy != null && (bridge == null || !bridge.CanAcceptEnemy(enemy))) continue;
+            if (enemy != null && bridge != null && !enemy.CanReachBridge(bridge)) continue;
             if (bridge == null || bridge.IsRetired || bridge.currentIndex >= bridge.brickCount) continue;
 
             int ownedBrickCount = bridge.CountBuiltBricksByColor(enemy.characterColor);

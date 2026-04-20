@@ -9,13 +9,30 @@ public class Goal : MonoBehaviour
 
     private Character topOne;
 
+    private void Awake()
+    {
+        ResolveCinemachineCamera();
+    }
+
     private void Reset()
     {
         Collider goalCollider = GetComponent<Collider>();
         if (goalCollider != null)
         {
-            goalCollider.isTrigger = true;
+            if (goalCollider is MeshCollider meshCollider)
+            {
+                if (meshCollider.convex)
+                {
+                    meshCollider.isTrigger = true;
+                }
+            }
+            else
+            {
+                goalCollider.isTrigger = true;
+            }
         }
+
+        ResolveCinemachineCamera();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -33,8 +50,15 @@ public class Goal : MonoBehaviour
 
         topOne = character;
         topOne.ReachGoal(goalRoot != null ? goalRoot : transform);
+
+        if (topOne is Enemy topEnemy)
+        {
+            topEnemy.StopAllMovement();
+        }
+
         StopAllEnemies();
         FocusCameraOnTopOne();
+        ResolveGameResult(topOne);
     }
 
     private void StopAllEnemies()
@@ -53,11 +77,44 @@ public class Goal : MonoBehaviour
 
     private void FocusCameraOnTopOne()
     {
-        if (cinemachineCamera == null || topOne == null)
+        if (topOne == null)
         {
             return;
         }
 
-        cinemachineCamera.Target.TrackingTarget = topOne.transform;
+        ResolveCinemachineCamera();
+
+        if (cinemachineCamera != null)
+        {
+            cinemachineCamera.Target.TrackingTarget = topOne.transform;
+            cinemachineCamera.Target.LookAtTarget = topOne.transform;
+        }
+    }
+
+    private void ResolveGameResult(Character character)
+    {
+        if (character == null || LevelManager.Instance == null)
+        {
+            return;
+        }
+
+        if (character.CompareTag("Player"))
+        {
+            LevelManager.Instance.OnWin();
+            return;
+        }
+
+        if (character.CompareTag("Enemy"))
+        {
+            LevelManager.Instance.OnLose();
+        }
+    }
+
+    private void ResolveCinemachineCamera()
+    {
+        if (cinemachineCamera == null)
+        {
+            cinemachineCamera = FindFirstObjectByType<CinemachineCamera>();
+        }
     }
 }

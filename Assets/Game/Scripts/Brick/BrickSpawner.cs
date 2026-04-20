@@ -27,6 +27,11 @@ public class BrickSpawner : MonoBehaviour
     private int maxBricksPerCharacter;
     private bool isInitialized;
 
+    private bool IsGameplayActive()
+    {
+        return GameManager.Instance != null && GameManager.Instance.IsPlaying;
+    }
+
     private void Awake()
     {
         if (stageController == null)
@@ -161,7 +166,7 @@ public class BrickSpawner : MonoBehaviour
 
         RecalculateMaxBricksPerCharacter();
 
-        if (isInitialized)
+        if (isInitialized && IsGameplayActive())
         {
             SpawnInitialBricks(character);
         }
@@ -185,6 +190,12 @@ public class BrickSpawner : MonoBehaviour
     {
         while (true)
         {
+            if (!IsGameplayActive())
+            {
+                yield return null;
+                continue;
+            }
+
             List<Character> validCharacters = characters.Where(c => c != null).ToList();
 
             foreach (Character character in validCharacters)

@@ -111,4 +111,31 @@ public class PoolManager : Singleton<PoolManager>
 
         poolDictionary[key].Enqueue(obj);
     }
+
+    public void ReturnAllActive(string key)
+    {
+        if (string.IsNullOrEmpty(key) || !poolDictionary.ContainsKey(key) || !parentDictionary.ContainsKey(key))
+        {
+            return;
+        }
+
+        PoolObject[] poolObjects = FindObjectsByType<PoolObject>(FindObjectsSortMode.None);
+        foreach (PoolObject poolObject in poolObjects)
+        {
+            if (poolObject == null || poolObject.key != key)
+            {
+                continue;
+            }
+
+            GameObject obj = poolObject.gameObject;
+            if (!obj.activeInHierarchy)
+            {
+                continue;
+            }
+
+            obj.SetActive(false);
+            obj.transform.SetParent(parentDictionary[key]);
+            poolDictionary[key].Enqueue(obj);
+        }
+    }
 }

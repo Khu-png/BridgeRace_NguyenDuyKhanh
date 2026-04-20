@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class Character : MonoBehaviour
 {
+    private const string InitialStageName = "Stage1";
     private const string StackBrickPoolKey = "PlayerBrick";
     private const string DroppedBrickPoolKey = "FallBrick";
     private const string FallbackDroppedBrickPoolKey = "SpawnBrick";
@@ -24,6 +25,7 @@ public class Character : MonoBehaviour
 
     [Header("Stage")]
     [SerializeField] private StageController currentStage;
+    [SerializeField] private BrickSpawner currentBrickSpawner;
 
     protected Animator fallAnimator;
     [Header("Combat")]
@@ -48,6 +50,7 @@ public class Character : MonoBehaviour
 
     public int BrickCount => brickStack.Count;
     public StageController CurrentStage => currentStage;
+    public BrickSpawner CurrentBrickSpawner => currentBrickSpawner;
     public bool IsStunned => isKnockedDown || Time.time < stunEndTime;
     public bool IsBuildingBridge => isBuildingBridge;
     public bool HasReachedGoal => hasReachedGoal;
@@ -56,10 +59,21 @@ public class Character : MonoBehaviour
     {
         ApplyColorSelection();
         CacheAnimator();
+        SetAnimatorTimeScaleMode(AnimatorUpdateMode.Normal);
 
-        if (currentStage == null)
+        StageController initialStage = FindInitialStageController();
+        if (initialStage != null)
+        {
+            currentStage = initialStage;
+        }
+        else if (currentStage == null)
         {
             currentStage = FindClosestStageController();
+        }
+
+        if (currentBrickSpawner == null && currentStage != null)
+        {
+            currentBrickSpawner = currentStage.BrickSpawner;
         }
 
         if (currentStage != null)
@@ -73,14 +87,19 @@ public class Character : MonoBehaviour
         ApplyColorSelection();
     }
 
-    public void SetCurrentStage(StageController newStage)
+    public void SetCurrentStage(StageController newStage, BrickSpawner targetSpawner = null)
     {
-        if (currentStage == newStage) return;
+        BrickSpawner resolvedSpawner = newStage != null
+            ? (targetSpawner != null ? targetSpawner : newStage.BrickSpawner)
+            : null;
+
+        if (currentStage == newStage && currentBrickSpawner == resolvedSpawner) return;
 
         isBuildingBridge = false;
         currentStage?.UnregisterCharacter(this);
 
         currentStage = newStage;
+        currentBrickSpawner = resolvedSpawner;
 
         currentStage?.RegisterCharacter(this);
     }
@@ -202,9 +221,12 @@ public class Character : MonoBehaviour
         RefreshStackVisuals();
 
         transform.SetParent(null, true);
-        transform.position = goalTransform.position;
-        transform.rotation = goalTransform.rotation * Quaternion.Euler(0f, 180f, 0f);
+        transform.SetPositionAndRotation(
+            goalTransform.position,
+            goalTransform.rotation * Quaternion.Euler(0f, 180f, 0f));
 
+        SetAnimatorTimeScaleMode(AnimatorUpdateMode.UnscaledTime);
+        SetAnimatorRootMotion(false);
         TriggerDanceAnimation();
     }
 
@@ -248,6 +270,28 @@ public class Character : MonoBehaviour
         }
     }
 
+    private void SetAnimatorTimeScaleMode(AnimatorUpdateMode updateMode)
+    {
+        CacheAnimator();
+        if (fallAnimator == null)
+        {
+            return;
+        }
+
+        fallAnimator.updateMode = updateMode;
+    }
+
+    private void SetAnimatorRootMotion(bool useRootMotion)
+    {
+        CacheAnimator();
+        if (fallAnimator == null)
+        {
+            return;
+        }
+
+        fallAnimator.applyRootMotion = useRootMotion;
+    }
+
     private StageController FindClosestStageController()
     {
         StageController[] stages = FindObjectsByType<StageController>(FindObjectsSortMode.None);
@@ -270,6 +314,21 @@ public class Character : MonoBehaviour
         }
 
         return closestStage;
+    }
+
+    private StageController FindInitialStageController()
+    {
+        StageController[] stages = FindObjectsByType<StageController>(FindObjectsSortMode.None);
+
+        foreach (StageController stage in stages)
+        {
+            if (stage != null && stage.name == InitialStageName)
+            {
+                return stage;
+            }
+        }
+
+        return null;
     }
 
     private void ApplyColorSelection()

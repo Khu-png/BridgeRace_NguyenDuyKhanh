@@ -1,11 +1,10 @@
 using UnityEngine;
 
-
-[RequireComponent(typeof(Rigidbody), typeof (CapsuleCollider))]
+[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class Player : Character
 {
     public static bool CanMove { get; set; } = true;
-    
+
     [Header("Movement")]
     [SerializeField] private Rigidbody _rigidbody;
     [SerializeField] private FixedJoystick _joystick;
@@ -16,10 +15,50 @@ public class Player : Character
     [SerializeField] private float groundCheckDistance = 1.5f;
     [SerializeField] private float edgeStopPadding = 0.1f;
 
-    private bool isRunning = false;
+    private bool isRunning;
+
+    protected override void Start()
+    {
+        base.Start();
+
+        if (_rigidbody == null)
+        {
+            _rigidbody = GetComponent<Rigidbody>();
+        }
+
+        if (_animator == null)
+        {
+            _animator = GetComponentInChildren<Animator>();
+        }
+
+        if (_joystick == null)
+        {
+            _joystick = FindFirstObjectByType<FixedJoystick>();
+        }
+    }
 
     private void FixedUpdate()
     {
+        if (_rigidbody == null)
+        {
+            _rigidbody = GetComponent<Rigidbody>();
+        }
+
+        if (_animator == null)
+        {
+            _animator = GetComponentInChildren<Animator>();
+        }
+
+        if (_joystick == null)
+        {
+            _joystick = FindFirstObjectByType<FixedJoystick>();
+        }
+
+        if (_rigidbody == null || _animator == null || _joystick == null)
+        {
+            return;
+        }
+
         RefreshKnockdownState();
 
         if (HasReachedGoal)
@@ -48,13 +87,15 @@ public class Player : Character
             return;
         }
 
-        Vector3 direction = new Vector3(_joystick.Horizontal, 0, _joystick.Vertical);
+        Vector3 direction = new Vector3(_joystick.Horizontal, 0f, _joystick.Vertical);
 
         if (direction.magnitude > 1f)
+        {
             direction.Normalize();
+        }
 
         Vector3 filteredDirection = FilterDirectionByGround(direction);
-        
+
         Vector3 targetVelocity = new Vector3(
             filteredDirection.x * _moveSpeed,
             _rigidbody.linearVelocity.y,
@@ -66,7 +107,7 @@ public class Player : Character
             targetVelocity,
             Time.fixedDeltaTime * 10f
         );
-        
+
         if (filteredDirection.sqrMagnitude > 0.001f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(filteredDirection);
@@ -76,7 +117,7 @@ public class Player : Character
                 Time.fixedDeltaTime * 15f
             );
         }
-        
+
         bool isMoving = filteredDirection.sqrMagnitude > 0.001f;
 
         if (isMoving && !isRunning)
@@ -94,14 +135,40 @@ public class Player : Character
     protected override void StopForGoal()
     {
         CanMove = false;
+        ResetMovementState();
+    }
 
+    public void ResetMovementState()
+    {
         if (_rigidbody == null)
         {
-            return;
+            _rigidbody = GetComponent<Rigidbody>();
         }
 
-        _rigidbody.linearVelocity = Vector3.zero;
-        _rigidbody.angularVelocity = Vector3.zero;
+        if (_animator == null)
+        {
+            _animator = GetComponentInChildren<Animator>();
+        }
+
+        if (_joystick == null)
+        {
+            _joystick = FindFirstObjectByType<FixedJoystick>();
+        }
+
+        if (_rigidbody != null)
+        {
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+        }
+
+        _joystick?.ResetInput();
+
+        if (isRunning && _animator != null)
+        {
+            _animator.SetTrigger("Idle");
+        }
+
+        isRunning = false;
     }
 
     private Vector3 FilterDirectionByGround(Vector3 direction)

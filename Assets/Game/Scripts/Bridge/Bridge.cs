@@ -30,12 +30,20 @@ public class Bridge : MonoBehaviour
 
     [Header("Stage")]
     [SerializeField] private StageController sourceStage;
+    [SerializeField] private BrickSpawner targetSpawner;
+    [SerializeField] private int maxEnemyBuilders = 2;
 
     private BridgeWall bridgeWall;
     private GameObject generatedRamp;
     private bool isRetired;
+    private Character lastProgressCharacter;
+    private Character bridgeCompleter;
+    private readonly HashSet<Enemy> reservedEnemies = new HashSet<Enemy>();
     public StageController SourceStage => sourceStage;
+    public BrickSpawner TargetSpawner => targetSpawner;
     public bool IsRetired => isRetired;
+    public Character LastProgressCharacter => lastProgressCharacter;
+    public Character BridgeCompleter => bridgeCompleter;
     
     
     void Awake()
@@ -291,14 +299,36 @@ public class Bridge : MonoBehaviour
         return startPoint.position + step * currentIndex;
     }
 
-    public void RegisterBrickProgress(int index)
+    public void RegisterBrickProgress(int index, Character builder = null)
     {
         if (isRetired) return;
+
+        bool wasFull = IsFull();
+
+        if (builder != null)
+        {
+            lastProgressCharacter = builder;
+        }
 
         if (index >= currentIndex)
         {
             currentIndex = index + 1;
         }
+
+        if (!wasFull && IsFull() && builder != null)
+        {
+            bridgeCompleter = builder;
+        }
+    }
+
+    public void NextStep()
+    {
+        if (isRetired || currentIndex >= brickCount)
+        {
+            return;
+        }
+
+        currentIndex++;
     }
 
     public void MoveWallForward(int brickIndex)
@@ -378,5 +408,26 @@ public class Bridge : MonoBehaviour
         }
 
         return startPoint.position - startPoint.forward * backwardOffset;
+    }
+
+    public bool CanAcceptEnemy(Enemy enemy)
+    {
+        if (enemy == null) return false;
+        if (isRetired || IsFull()) return false;
+        if (reservedEnemies.Contains(enemy)) return true;
+        return reservedEnemies.Count < maxEnemyBuilders;
+    }
+
+    public bool TryReserveEnemy(Enemy enemy)
+    {
+        if (!CanAcceptEnemy(enemy)) return false;
+        reservedEnemies.Add(enemy);
+        return true;
+    }
+
+    public void ReleaseEnemy(Enemy enemy)
+    {
+        if (enemy == null) return;
+        reservedEnemies.Remove(enemy);
     }
 }

@@ -437,7 +437,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c823a74c23ba42c4baaba277bff36b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageController
-  brickSpawner: {fileID: 1252610995931912692}
+  defaultBrickSpawner: {fileID: 0}
+  brickSpawners: []
 --- !u!1 &4802501728427403424
 GameObject:
   m_ObjectHideFlags: 0
@@ -545,7 +546,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c823a74c23ba42c4baaba277bff36b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageController
-  brickSpawner: {fileID: 4300014091822181713}
+  defaultBrickSpawner: {fileID: 0}
+  brickSpawners: []
 --- !u!1 &5559281224086198531
 GameObject:
   m_ObjectHideFlags: 0
@@ -593,7 +595,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c823a74c23ba42c4baaba277bff36b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageController
-  brickSpawner: {fileID: 6370124795769134721}
+  defaultBrickSpawner: {fileID: 0}
+  brickSpawners: []
 --- !u!1 &5830327268439390261
 GameObject:
   m_ObjectHideFlags: 0
@@ -1675,7 +1678,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5148472422570678079, guid: 3aa0e699aee09904ca2e0b3ec11ae8a6, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.04
       objectReference: {fileID: 0}
     - target: {fileID: 5148472422570678079, guid: 3aa0e699aee09904ca2e0b3ec11ae8a6, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2136,4 +2139,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c823a74c23ba42c4baaba277bff36b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageController
-  brickSpawner: {fileID: 0}
+  defaultBrickSpawner: {fileID: 0}
+  brickSpawners: []

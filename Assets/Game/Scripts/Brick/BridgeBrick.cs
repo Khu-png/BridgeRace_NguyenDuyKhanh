@@ -80,7 +80,7 @@ public class BridgeBrick : MonoBehaviour
 
         if (IsOwnedBy(character.characterColor))
         {
-            bridge?.RegisterBrickProgress(brickIndex);
+            bridge?.RegisterBrickProgress(brickIndex, character);
             if (character.CompareTag("Player") && !bridge.IsRetired)
             {
                 bridge?.MoveWallForward(brickIndex);
@@ -96,7 +96,7 @@ public class BridgeBrick : MonoBehaviour
 
         character.RemoveBrick();
         RevealAndPaint(character.characterColor);
-        bridge?.RegisterBrickProgress(brickIndex);
+        bridge?.RegisterBrickProgress(brickIndex, character);
         if (character.CompareTag("Player") && !bridge.IsRetired)
         {
             bridge?.MoveWallForward(brickIndex);

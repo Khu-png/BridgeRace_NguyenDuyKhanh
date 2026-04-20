@@ -349,7 +349,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c823a74c23ba42c4baaba277bff36b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageController
-  brickSpawner: {fileID: 1015302788129145351}
+  defaultBrickSpawner: {fileID: 0}
+  brickSpawners: []
 --- !u!1 &3655430912573159117
 GameObject:
   m_ObjectHideFlags: 0
@@ -641,7 +642,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c823a74c23ba42c4baaba277bff36b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageController
-  brickSpawner: {fileID: 0}
+  defaultBrickSpawner: {fileID: 0}
+  brickSpawners: []
 --- !u!4 &6850488894984179264 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6588455989320477736, guid: 44564fca13622364a8c1cde223c6b64e, type: 3}

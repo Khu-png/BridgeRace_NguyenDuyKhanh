@@ -35,21 +35,24 @@ public class BuildBridgeState : IEnemyState
 
         if (enemy.TargetBridgeWall.Bridge != null && enemy.TargetBridgeWall.Bridge.IsFull())
         {
-            if (hasReachedBuildPoint)
-            {
-                Bridge completedBridge = enemy.TargetBridgeWall.Bridge;
-                StageController nextStage = enemy.TargetBridgeWall.NextStage;
+            Bridge completedBridge = enemy.TargetBridgeWall.Bridge;
+            bool isBridgeCompleter = completedBridge != null && completedBridge.BridgeCompleter == enemy;
 
-                enemy.TargetBridgeWall.ReleaseEnemySlot(enemy);
+            if (hasReachedBuildPoint && isBridgeCompleter)
+            {
+                StageController nextStage = enemy.TargetBridgeWall.NextStage;
+                BrickSpawner targetSpawner = completedBridge != null ? completedBridge.TargetSpawner : null;
+
+                enemy.TargetBridgeWall.Bridge?.ReleaseEnemy(enemy);
 
                 if (nextStage != null)
                 {
-                    enemy.CrossBridge(completedBridge, nextStage);
+                    enemy.CrossBridge(completedBridge, nextStage, targetSpawner);
                     return;
                 }
             }
 
-            if (enemy.TrySnapToNavMesh())
+            if (hasReachedBuildPoint && enemy.IsTransformDrivenMovement && enemy.TryReturnFromBridgeInstantly(completedBridge))
             {
                 enemy.SetBridgeBuildingState(false);
                 enemy.SetTransformDrivenMovement(false);
@@ -58,9 +61,10 @@ public class BuildBridgeState : IEnemyState
             }
             else
             {
-                enemy.SetBridgeBuildingState(true);
-                enemy.SetTransformDrivenMovement(true);
-                enemy.MoveBackFromBridge();
+                enemy.SetBridgeBuildingState(false);
+                enemy.SetTransformDrivenMovement(false);
+                enemy.EnableAgentMovement();
+                enemy.ChangeState(new FindBrickState(enemy));
             }
             return;
         }
@@ -105,7 +109,7 @@ public class BuildBridgeState : IEnemyState
     {
         if (enemy.TargetBridgeWall != null)
         {
-            enemy.TargetBridgeWall.ReleaseEnemySlot(enemy);
+            enemy.TargetBridgeWall.Bridge?.ReleaseEnemy(enemy);
         }
         enemy.SetBridgeBuildingState(false);
         enemy.SetTransformDrivenMovement(false);
