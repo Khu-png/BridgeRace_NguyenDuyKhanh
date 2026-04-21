@@ -123,7 +123,7 @@ public class UIManager : Singleton<UIManager>
     {
         RestoreDefaultLevelTextPosition();
         if (menuPanel != null) menuPanel.SetActive(false);
-        if (levelText != null) levelText.gameObject.SetActive(true);
+        if (levelText != null) levelText.gameObject.SetActive(false);
         if (pauseButton != null) pauseButton.SetActive(true);
         if (joystick != null) joystick.SetActive(true);
     }
