@@ -87,7 +87,10 @@ public class PoolManager : Singleton<PoolManager>
             obj = pool.Dequeue();
         }
 
-        obj.transform.SetParent(null);
+        if (key != "FallBrick")
+        {
+            obj.transform.SetParent(null);
+        }
         obj.transform.position = pos;
         obj.transform.rotation = rot;
         obj.SetActive(true);

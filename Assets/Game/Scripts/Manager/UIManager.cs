@@ -10,6 +10,7 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private GameObject winPanel;
     [SerializeField] private GameObject losePanel;
     [SerializeField] private GameObject menuPanel;
+    [SerializeField] private GameObject settingPanel;
     [SerializeField] private GameObject pauseButton;
     [SerializeField] private GameObject joystick;
 
@@ -116,6 +117,7 @@ public class UIManager : Singleton<UIManager>
         if (pausePanel != null) pausePanel.SetActive(false);
         if (winPanel != null) winPanel.SetActive(false);
         if (losePanel != null) losePanel.SetActive(false);
+        if (settingPanel != null) settingPanel.SetActive(false);
         if (pauseButton != null) pauseButton.SetActive(false);
     }
 
@@ -148,6 +150,27 @@ public class UIManager : Singleton<UIManager>
     public void OnClickPause() => GameManager.Instance.GamePause();
     public void OnClickResume() => GameManager.Instance.GameResume();
     public void OnClickNext() => GameManager.Instance.GameNextLevel();
+
+    public void OnClickSetting()
+    {
+        if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameManager.GameState.MainMenu)
+        {
+            return;
+        }
+
+        if (settingPanel != null)
+        {
+            settingPanel.SetActive(true);
+        }
+    }
+
+    public void OnClickExitSetting()
+    {
+        if (settingPanel != null)
+        {
+            settingPanel.SetActive(false);
+        }
+    }
 
     public void OnClickRestart()
     {

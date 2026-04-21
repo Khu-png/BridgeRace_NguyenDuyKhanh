@@ -100,12 +100,12 @@ public class GameManager : Singleton<GameManager>
 
     public void GameNextLevel()
     {
-        resumeState = GameState.Playing;
-        ChangeState(GameState.Playing);
-        Player.CanMove = true;
         UIManager.Instance?.ResetUI();
-        UIManager.Instance?.UIPlay();
         LevelManager.Instance?.OnNextLevel();
+        resumeState = GameState.MainMenu;
+        ChangeState(GameState.MainMenu);
+        Player.CanMove = false;
+        UIManager.Instance?.UIMenu();
     }
 
     public void GameMenu()
