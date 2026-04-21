@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UIManager : Singleton<UIManager>
 {
@@ -14,6 +15,10 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private GameObject pauseButton;
     [SerializeField] private GameObject joystick;
 
+    [Header("Audio")]
+    public Slider _musicSlider;
+    public Slider _sfxSlider;
+
     [Header("UI Text")]
     [SerializeField] private TextMeshProUGUI levelText;
 
@@ -24,6 +29,7 @@ public class UIManager : Singleton<UIManager>
     private void Start()
     {
         CacheLevelTextPosition();
+        InitializeAudioSliders();
 
         if (LevelManager.Instance != null)
         {
@@ -224,5 +230,42 @@ public class UIManager : Singleton<UIManager>
         Vector2 menuPosition = defaultLevelTextAnchoredPosition;
         menuPosition.y = MenuLevelTextY;
         levelTextRect.anchoredPosition = menuPosition;
+    }
+
+    public void SetMusicVolume()
+    {
+        AudioManager.Instance?.SetMusicVolume(_musicSlider != null ? _musicSlider.value : 1f);
+    }
+
+    public void SetSFXVolume()
+    {
+        AudioManager.Instance?.SetSFXVolume(_sfxSlider != null ? _sfxSlider.value : 1f);
+    }
+
+    public void SetMusicVolume(float volume)
+    {
+        AudioManager.Instance?.SetMusicVolume(volume);
+    }
+
+    public void SetSFXVolume(float volume)
+    {
+        AudioManager.Instance?.SetSFXVolume(volume);
+    }
+
+    private void InitializeAudioSliders()
+    {
+        if (_musicSlider != null)
+        {
+            _musicSlider.onValueChanged.RemoveListener(SetMusicVolume);
+            _musicSlider.onValueChanged.AddListener(SetMusicVolume);
+            SetMusicVolume(_musicSlider.value);
+        }
+
+        if (_sfxSlider != null)
+        {
+            _sfxSlider.onValueChanged.RemoveListener(SetSFXVolume);
+            _sfxSlider.onValueChanged.AddListener(SetSFXVolume);
+            SetSFXVolume(_sfxSlider.value);
+        }
     }
 }

@@ -53,6 +53,7 @@ public class LevelManager : Singleton<LevelManager>
         InitializePlayer();
         MovePlayerToSpawn(PlayerSpawnPosition);
         BindCameraToPlayer();
+        ResetRewardedAdsForNewPlayer();
 
         UIManager.Instance?.UpdateLevelText(level + 1);
     }
@@ -219,6 +220,15 @@ public class LevelManager : Singleton<LevelManager>
 
     public void OnWin() => GameManager.Instance.GameWin();
     public void OnLose() => GameManager.Instance.GameLose();
+
+    private void ResetRewardedAdsForNewPlayer()
+    {
+        Rewarded[] rewardedAds = FindObjectsByType<Rewarded>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (Rewarded rewardedAd in rewardedAds)
+        {
+            rewardedAd?.ResetRewardAvailability();
+        }
+    }
 
     private bool HasPrefabLevels() => levels != null && levels.Count > 0;
 }

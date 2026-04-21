@@ -25,6 +25,9 @@ public class EnemyCheck : MonoBehaviour
         if (owner.BrickCount == otherCharacter.BrickCount) return;
 
         Character loser = owner.BrickCount < otherCharacter.BrickCount ? owner : otherCharacter;
-        loser.TryKnockDown();
+        if (loser.TryKnockDown() && (owner.CompareTag("Player") || otherCharacter.CompareTag("Player")))
+        {
+            AudioManager.Instance?.PlaySFX("Hit");
+        }
     }
 }

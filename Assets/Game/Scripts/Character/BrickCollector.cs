@@ -21,6 +21,11 @@ public class PlayerCollector : MonoBehaviour
         
         Vector3 pickupPosition = brick.transform.position;
         _character.CollectBrick(pickupPosition);
+
+        if (_character.CompareTag("Player"))
+        {
+            AudioManager.Instance?.PlaySFX("Collect");
+        }
         
         BrickSpawner spawner = brick.sourceSpawner;
         if (spawner != null)
