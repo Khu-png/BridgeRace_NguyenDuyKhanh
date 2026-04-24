@@ -12,4 +12,9 @@ public static class SimplePool
     {
         PoolManager.Instance.Return(obj);
     }
+
+    public static void DespawnAll(string key)
+    {
+        PoolManager.Instance.ReturnAllActive(key);
+    }
 }

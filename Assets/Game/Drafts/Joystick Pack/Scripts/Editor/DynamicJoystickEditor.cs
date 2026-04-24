@@ -18,7 +18,7 @@ public class DynamicJoystickEditor : JoystickEditor
     {
         base.OnInspectorGUI();
 
-        if (background != null)
+        if (background != null && background.objectReferenceValue != null)
         {
             RectTransform backgroundRect = (RectTransform)background.objectReferenceValue;
             backgroundRect.anchorMax = Vector2.zero;

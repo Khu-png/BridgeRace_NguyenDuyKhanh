@@ -8,7 +8,7 @@ public class BuildBridgeState : IEnemyState
     {
         this.enemy = enemy;
     }
-
+    // Todo : quá nhiều logic, bỏ enemey khỏi các States.  Làm như bài chép game về phân state. 
     public void OnEnter()
     {
         hasReachedBuildPoint = false;

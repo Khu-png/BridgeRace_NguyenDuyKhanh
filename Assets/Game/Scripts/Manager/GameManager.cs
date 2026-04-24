@@ -1,3 +1,6 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
@@ -17,8 +20,9 @@ public class GameManager : Singleton<GameManager>
         DontDestroyOnLoad(gameObject);
         Application.targetFrameRate = 120;
         ChangeState(GameState.MainMenu);
+        // TODO : Player.OnInit();
         Player.CanMove = false;
-        UIManager.Instance?.UIMenu();
+        UIManager.Instance?.OpenUI<Mainmenu>();
     }
 
     public void GameStart()
@@ -27,15 +31,17 @@ public class GameManager : Singleton<GameManager>
 
         resumeState = GameState.Playing;
         ChangeState(GameState.Playing);
+        // TODO : Player.OnMove();
         Player.CanMove = true;
+
+        UIManager.Instance?.CloseAll();
 
         if (isStartingFromMenu)
         {
             LevelManager.Instance?.OnReplay();
         }
 
-        UIManager.Instance?.ResetUI();
-        UIManager.Instance?.UIPlay();
+        ShowGameplayUI();
     }
 
     public void GamePause()
@@ -49,24 +55,25 @@ public class GameManager : Singleton<GameManager>
         ChangeState(GameState.Paused);
         Player.CanMove = false;
         FreezeGameplayActors();
-        UIManager.Instance?.UIPause();
+        UIManager.Instance?.CloseAll();
+        UIManager.Instance?.OpenUI<Pause>();
     }
 
     public void GameResume()
     {
         ChangeState(resumeState);
-        UIManager.Instance?.ResetUI();
+        UIManager.Instance?.CloseAll();
 
         if (resumeState == GameState.MainMenu)
         {
             Player.CanMove = false;
-            UIManager.Instance?.UIMenu();
+            UIManager.Instance?.OpenUI<Mainmenu>();
             return;
         }
 
         Player.CanMove = true;
         ResumeGameplayActors();
-        UIManager.Instance?.UIPlay();
+        ShowGameplayUI();
     }
 
     public void GameWin()
@@ -75,7 +82,8 @@ public class GameManager : Singleton<GameManager>
         ChangeState(GameState.Win);
         Player.CanMove = false;
         FreezeGameplayActors();
-        UIManager.Instance?.UIWin();
+        UIManager.Instance?.CloseAll();
+        UIManager.Instance?.OpenUI<Win>();
     }
 
     public void GameLose()
@@ -84,7 +92,8 @@ public class GameManager : Singleton<GameManager>
         ChangeState(GameState.Lose);
         Player.CanMove = false;
         FreezeGameplayActors();
-        UIManager.Instance?.UILose();
+        UIManager.Instance?.CloseAll();
+        UIManager.Instance?.OpenUI<Lose>();
     }
 
     public void GameRestart()
@@ -93,19 +102,27 @@ public class GameManager : Singleton<GameManager>
         resumeState = GameState.Playing;
         ChangeState(GameState.Playing);
         Player.CanMove = true;
-        UIManager.Instance?.ResetUI();
-        UIManager.Instance?.UIPlay();
+        UIManager.Instance?.CloseAll();
         LevelManager.Instance?.OnReplay();
+        ShowGameplayUI();
     }
 
+    // TODO : Chỉnh lại ý nghĩa hàm.
     public void GameNextLevel()
     {
-        UIManager.Instance?.ResetUI();
+        StartCoroutine(GameNextLevelRoutine());
+    }
+
+    private IEnumerator GameNextLevelRoutine()
+    {
+        yield return new WaitForSeconds(1);
+
+        UIManager.Instance?.CloseAll();
         LevelManager.Instance?.OnNextLevel();
         resumeState = GameState.MainMenu;
         ChangeState(GameState.MainMenu);
         Player.CanMove = false;
-        UIManager.Instance?.UIMenu();
+        UIManager.Instance?.OpenUI<Mainmenu>();
     }
 
     public void GameMenu()
@@ -115,7 +132,8 @@ public class GameManager : Singleton<GameManager>
         ChangeState(GameState.MainMenu);
         LevelManager.Instance?.OnReplay();
         Player.CanMove = false;
-        UIManager.Instance?.UIMenu();
+        UIManager.Instance?.CloseAll();
+        UIManager.Instance?.OpenUI<Mainmenu>();
     }
 
     private void ChangeState(GameState newState)
@@ -123,8 +141,20 @@ public class GameManager : Singleton<GameManager>
         currentState = newState;
     }
 
+    private void ShowGameplayUI()
+    {
+        if (LevelManager.Instance != null)
+        {
+            LevelText levelText = UIManager.Instance?.OpenUI<LevelText>();
+            levelText?.SetLevel(LevelManager.Instance.CurrentLevel + 1);
+        }
+
+        UIManager.Instance?.OpenUI<PauseButton>();
+    }
+
     private void FreezeGameplayActors()
     {
+        //TODO : Không được dùng FindObjects vì có thể gây Lag nếu có quá nhiều đối tượng. => Tạo List Enemy để quản lý.
         Player player = FindFirstObjectByType<Player>();
         player?.ResetMovementState();
 
@@ -135,6 +165,9 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+    [SerializeField] Player player;
+    List<Character> characters = new List<Character>();
+    
     private void ResumeGameplayActors()
     {
         Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);

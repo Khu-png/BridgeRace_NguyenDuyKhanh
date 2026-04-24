@@ -15,6 +15,7 @@ public class BridgeBrick : MonoBehaviour
     {
         if (modelRoot == null && transform.childCount > 0)
         {
+            // TODO : Không dùng getcomponent/getchild.  
             modelRoot = transform.GetChild(0).gameObject;
         }
     }

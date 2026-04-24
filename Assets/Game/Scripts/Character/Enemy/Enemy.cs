@@ -167,6 +167,7 @@ public class Enemy : Character
 
         if (agent != null && agent.enabled && ShouldRefreshDestination())
         {
+            // TODO : Có một class riêng về việc manage agent.
             agent.isStopped = false;
             agent.SetDestination(goal.transform.position);
             ResetRefreshCooldown();
@@ -197,7 +198,7 @@ public class Enemy : Character
             return false;
         }
 
-        if (NavMesh.SamplePosition(buildPoint, out NavMeshHit hit, 0.2f, NavMesh.AllAreas))
+        if (UnityEngine.AI.NavMesh.SamplePosition(buildPoint, out NavMeshHit hit, 0.2f, UnityEngine.AI.NavMesh.AllAreas))
         {
             buildPoint = hit.position;
         }
@@ -276,7 +277,7 @@ public class Enemy : Character
             return false;
         }
 
-        if (!NavMesh.SamplePosition(point, out NavMeshHit hit, 0.2f, NavMesh.AllAreas))
+        if (!UnityEngine.AI.NavMesh.SamplePosition(point, out NavMeshHit hit, 0.2f, UnityEngine.AI.NavMesh.AllAreas))
         {
             return false;
         }
@@ -472,7 +473,7 @@ public class Enemy : Character
 
     private bool TrySnapToNavMeshAt(Vector3 samplePosition, float maxDistance)
     {
-        if (NavMesh.SamplePosition(samplePosition, out NavMeshHit hit, maxDistance, NavMesh.AllAreas))
+        if (UnityEngine.AI.NavMesh.SamplePosition(samplePosition, out NavMeshHit hit, maxDistance, UnityEngine.AI.NavMesh.AllAreas))
         {
             transform.position = hit.position;
             if (agent != null && agent.enabled)

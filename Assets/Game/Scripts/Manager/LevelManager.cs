@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 public class LevelManager : Singleton<LevelManager>
 {
     private const string LevelPrefKey = "Level";
+    private const string FallBrickPoolKey = "FallBrick";
     private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, 0f, -1.2f);
 
     [SerializeField] private List<GameObject> levels;
@@ -55,7 +56,8 @@ public class LevelManager : Singleton<LevelManager>
         BindCameraToPlayer();
         ResetRewardedAdsForNewPlayer();
 
-        UIManager.Instance?.UpdateLevelText(level + 1);
+        LevelText levelText = UIManager.Instance?.OpenUI<LevelText>();
+        levelText?.SetLevel(level + 1);
     }
 
     public void LoadLevel(int index)
@@ -172,7 +174,7 @@ public class LevelManager : Singleton<LevelManager>
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    public void ResetToLevel1()
+    public void ResetToLevel1() // Chi de cho testing
     {
         if (!HasPrefabLevels())
         {
@@ -189,6 +191,7 @@ public class LevelManager : Singleton<LevelManager>
 
     private void ReloadCurrentLevel()
     {
+        SimplePool.DespawnAll(FallBrickPoolKey);
         DestroyAllCharacters();
 
         if (currentLevel != null)

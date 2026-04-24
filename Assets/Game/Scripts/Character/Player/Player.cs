@@ -7,7 +7,7 @@ public class Player : Character
 
     [Header("Movement")]
     [SerializeField] private Rigidbody _rigidbody;
-    [SerializeField] private FixedJoystick _joystick;
+    [SerializeField] private Joystick _joystick;
     [SerializeField] private Animator _animator;
     [SerializeField] private float _moveSpeed;
     [SerializeField] private LayerMask groundMask;
@@ -33,7 +33,7 @@ public class Player : Character
 
         if (_joystick == null)
         {
-            _joystick = FindFirstObjectByType<FixedJoystick>();
+            _joystick = FindFirstObjectByType<Joystick>();
         }
     }
 
@@ -51,7 +51,7 @@ public class Player : Character
 
         if (_joystick == null)
         {
-            _joystick = FindFirstObjectByType<FixedJoystick>();
+            _joystick = FindFirstObjectByType<Joystick>();
         }
 
         if (_rigidbody == null || _animator == null || _joystick == null)
@@ -152,7 +152,7 @@ public class Player : Character
 
         if (_joystick == null)
         {
-            _joystick = FindFirstObjectByType<FixedJoystick>();
+            _joystick = FindFirstObjectByType<Joystick>();
         }
 
         if (_rigidbody != null)

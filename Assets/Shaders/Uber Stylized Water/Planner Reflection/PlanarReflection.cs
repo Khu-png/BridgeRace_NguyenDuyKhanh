@@ -163,19 +163,54 @@ public class PlanarReflectionVolume : MonoBehaviour
         {
             _reflectionCamera.targetTexture = null;
             SafeDestroyObject(_reflectionCamera.gameObject);
+            _reflectionCamera = null;
         }
 
         if (_reflectionTexture)
         {
             RenderTexture.ReleaseTemporary(_reflectionTexture);
+            _reflectionTexture = null;
         }
     }
 
     void SafeDestroyObject(UnityEngine.Object obj)
     {
-        if (Application.isEditor) DestroyImmediate(obj);
-        else Destroy(obj);
+        if (obj == null) return;
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            ClearSelectionIfDestroying(obj);
+            DestroyImmediate(obj);
+            return;
+        }
+#endif
+
+        Destroy(obj);
     }
+
+#if UNITY_EDITOR
+    private void ClearSelectionIfDestroying(UnityEngine.Object obj)
+    {
+        var objectGameObject = obj as GameObject;
+
+        foreach (var selectedObject in Selection.objects)
+        {
+            if (selectedObject == null) continue;
+            if (selectedObject == obj)
+            {
+                Selection.objects = new UnityEngine.Object[0];
+                return;
+            }
+
+            if (objectGameObject != null && selectedObject is Component selectedComponent && selectedComponent.gameObject == objectGameObject)
+            {
+                Selection.objects = new UnityEngine.Object[0];
+                return;
+            }
+        }
+    }
+#endif
 
     private void UpdateReflectionCamera(Camera realCamera)
     {
