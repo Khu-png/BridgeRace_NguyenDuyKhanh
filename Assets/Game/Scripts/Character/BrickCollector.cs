@@ -2,17 +2,11 @@ using UnityEngine;
 
 public class PlayerCollector : MonoBehaviour
 {
-    private Character _character;
-
-    private void Awake()
-    {
-        _character = GetComponentInParent<Character>();
-    }
+    [SerializeField] private Character _character;
 
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Brick")) return;
-        if (_character == null) return;
 
         Brick brick = other.GetComponent<Brick>();
         if (brick == null) return;

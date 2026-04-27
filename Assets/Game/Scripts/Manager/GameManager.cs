@@ -1,6 +1,4 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
@@ -9,108 +7,130 @@ public class GameManager : Singleton<GameManager>
 
     public enum GameState { MainMenu, Playing, Paused, Win, Lose }
 
-    private GameState currentState;
+    private static GameState gameState;
     private GameState resumeState = GameState.MainMenu;
-    public GameState CurrentState => currentState;
-    public bool IsPlaying => currentState == GameState.Playing;
-    public bool IsPaused => currentState == GameState.Paused;
+    private bool isChangingLevel;
+    private Coroutine levelChangeRoutine;
+
+    public GameState CurrentState => gameState;
+    public bool IsPlaying => IsState(GameState.Playing);
+    public bool IsPaused => IsState(GameState.Paused);
+
+    protected override void Awake()
+    {
+        base.Awake();
+        Input.multiTouchEnabled = false;
+        Application.targetFrameRate = 60;
+        Screen.sleepTimeout = SleepTimeout.NeverSleep;
+
+        const int maxScreenHeight = 1280;
+        float ratio = (float)Screen.currentResolution.width / Screen.currentResolution.height;
+        if (Screen.currentResolution.height > maxScreenHeight)
+        {
+            Screen.SetResolution(Mathf.RoundToInt(ratio * maxScreenHeight), maxScreenHeight, true);
+        }
+    }
 
     private void Start()
     {
         DontDestroyOnLoad(gameObject);
-        Application.targetFrameRate = 120;
-        ChangeState(GameState.MainMenu);
-        // TODO : Player.OnInit();
-        Player.CanMove = false;
-        UIManager.Instance?.OpenUI<Mainmenu>();
+        EnterState(GameState.MainMenu, false);
+        OpenMainMenu();
     }
+
+    public static void ChangeState(GameState state) => gameState = state;
+    public static bool IsState(GameState state) => gameState == state;
 
     public void GameStart()
     {
-        bool isStartingFromMenu = currentState == GameState.MainMenu;
-
-        resumeState = GameState.Playing;
-        ChangeState(GameState.Playing);
-        // TODO : Player.OnMove();
-        Player.CanMove = true;
-
+        StopPendingLevelChange();
+        EnterState(GameState.Playing, true);
         UIManager.Instance?.CloseAll();
-
-        if (isStartingFromMenu)
-        {
-            LevelManager.Instance?.OnReplay();
-        }
-
         ShowGameplayUI();
     }
 
     public void GamePause()
     {
-        if (currentState == GameState.Paused)
+        if (IsState(GameState.Paused))
         {
             return;
         }
 
-        resumeState = currentState;
-        ChangeState(GameState.Paused);
-        Player.CanMove = false;
-        FreezeGameplayActors();
+        resumeState = gameState;
+        EnterState(GameState.Paused, false, false);
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
         UIManager.Instance?.CloseAll();
         UIManager.Instance?.OpenUI<Pause>();
     }
 
     public void GameResume()
     {
-        ChangeState(resumeState);
+        EnterState(resumeState, resumeState != GameState.MainMenu);
         UIManager.Instance?.CloseAll();
 
         if (resumeState == GameState.MainMenu)
         {
-            Player.CanMove = false;
-            UIManager.Instance?.OpenUI<Mainmenu>();
+            OpenMainMenu();
             return;
         }
 
-        Player.CanMove = true;
-        ResumeGameplayActors();
+        LevelManager.Instance?.SetGameplayActorsPaused(false);
         ShowGameplayUI();
     }
 
     public void GameWin()
     {
-        resumeState = GameState.Win;
-        ChangeState(GameState.Win);
-        Player.CanMove = false;
-        FreezeGameplayActors();
-        UIManager.Instance?.CloseAll();
-        UIManager.Instance?.OpenUI<Win>();
+        if (IsState(GameState.Win) || isChangingLevel)
+        {
+            return;
+        }
+
+        ShowResult<Win>(GameState.Win);
     }
 
     public void GameLose()
     {
-        resumeState = GameState.Lose;
-        ChangeState(GameState.Lose);
-        Player.CanMove = false;
-        FreezeGameplayActors();
-        UIManager.Instance?.CloseAll();
-        UIManager.Instance?.OpenUI<Lose>();
+        StopPendingLevelChange();
+        ShowResult<Lose>(GameState.Lose);
     }
 
     public void GameRestart()
     {
-        PoolManager.Instance?.ReturnAllActive(FallBrickPoolKey);
-        resumeState = GameState.Playing;
-        ChangeState(GameState.Playing);
-        Player.CanMove = true;
+        StopPendingLevelChange();
+        ClearGameplayObjects();
+        EnterState(GameState.Playing, true);
         UIManager.Instance?.CloseAll();
         LevelManager.Instance?.OnReplay();
         ShowGameplayUI();
     }
 
-    // TODO : Chỉnh lại ý nghĩa hàm.
     public void GameNextLevel()
     {
-        StartCoroutine(GameNextLevelRoutine());
+        if (!IsState(GameState.Win) || isChangingLevel)
+        {
+            return;
+        }
+
+        isChangingLevel = true;
+        levelChangeRoutine = StartCoroutine(GameNextLevelRoutine());
+    }
+
+    public void GameMenu()
+    {
+        StopPendingLevelChange();
+        ClearGameplayObjects();
+        EnterState(GameState.MainMenu, false);
+        LevelManager.Instance?.OnReplay();
+        OpenMainMenu();
+    }
+
+    public void GameResetLevel()
+    {
+        StopPendingLevelChange();
+        ClearGameplayObjects();
+        EnterState(GameState.MainMenu, false);
+        LevelManager.Instance?.ResetToLevel1();
+        OpenMainMenu();
     }
 
     private IEnumerator GameNextLevelRoutine()
@@ -119,61 +139,57 @@ public class GameManager : Singleton<GameManager>
 
         UIManager.Instance?.CloseAll();
         LevelManager.Instance?.OnNextLevel();
-        resumeState = GameState.MainMenu;
-        ChangeState(GameState.MainMenu);
-        Player.CanMove = false;
-        UIManager.Instance?.OpenUI<Mainmenu>();
+        isChangingLevel = false;
+        levelChangeRoutine = null;
+        EnterState(GameState.MainMenu, false);
+        OpenMainMenu();
     }
 
-    public void GameMenu()
+    private void EnterState(GameState state, bool canMove, bool updateResumeState = true)
     {
-        PoolManager.Instance?.ReturnAllActive(FallBrickPoolKey);
-        resumeState = GameState.MainMenu;
-        ChangeState(GameState.MainMenu);
-        LevelManager.Instance?.OnReplay();
-        Player.CanMove = false;
+        if (updateResumeState)
+        {
+            resumeState = state;
+        }
+
+        ChangeState(state);
+        Player.CanMove = canMove;
+    }
+
+    private void ShowResult<T>(GameState state) where T : UICanvas
+    {
+        EnterState(state, false);
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
+        UIManager.Instance?.CloseAll();
+        UIManager.Instance?.OpenUI<T>();
+    }
+
+    private void OpenMainMenu()
+    {
         UIManager.Instance?.CloseAll();
         UIManager.Instance?.OpenUI<Mainmenu>();
     }
 
-    private void ChangeState(GameState newState)
+    private void StopPendingLevelChange()
     {
-        currentState = newState;
+        if (levelChangeRoutine != null)
+        {
+            StopCoroutine(levelChangeRoutine);
+            levelChangeRoutine = null;
+        }
+
+        isChangingLevel = false;
     }
 
     private void ShowGameplayUI()
     {
         if (LevelManager.Instance != null)
         {
-            LevelText levelText = UIManager.Instance?.OpenUI<LevelText>();
-            levelText?.SetLevel(LevelManager.Instance.CurrentLevel + 1);
+            UIManager.Instance?.OpenUI<LevelText>()?.SetLevel(LevelManager.Instance.CurrentLevel + 1);
         }
 
         UIManager.Instance?.OpenUI<PauseButton>();
     }
 
-    private void FreezeGameplayActors()
-    {
-        //TODO : Không được dùng FindObjects vì có thể gây Lag nếu có quá nhiều đối tượng. => Tạo List Enemy để quản lý.
-        Player player = FindFirstObjectByType<Player>();
-        player?.ResetMovementState();
-
-        Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy enemy in enemies)
-        {
-            enemy?.PauseMovement();
-        }
-    }
-
-    [SerializeField] Player player;
-    List<Character> characters = new List<Character>();
-    
-    private void ResumeGameplayActors()
-    {
-        Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy enemy in enemies)
-        {
-            enemy?.ResumeMovement();
-        }
-    }
+    private void ClearGameplayObjects() => PoolManager.Instance?.ReturnAllActive(FallBrickPoolKey);
 }

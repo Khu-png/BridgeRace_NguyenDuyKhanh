@@ -6,9 +6,7 @@ public class Player : Character
     public static bool CanMove { get; set; } = true;
 
     [Header("Movement")]
-    [SerializeField] private Rigidbody _rigidbody;
     [SerializeField] private Joystick _joystick;
-    [SerializeField] private Animator _animator;
     [SerializeField] private float _moveSpeed;
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private float groundCheckHeight = 0.5f;
@@ -21,16 +19,6 @@ public class Player : Character
     {
         base.Start();
 
-        if (_rigidbody == null)
-        {
-            _rigidbody = GetComponent<Rigidbody>();
-        }
-
-        if (_animator == null)
-        {
-            _animator = GetComponentInChildren<Animator>();
-        }
-
         if (_joystick == null)
         {
             _joystick = FindFirstObjectByType<Joystick>();
@@ -39,22 +27,7 @@ public class Player : Character
 
     private void FixedUpdate()
     {
-        if (_rigidbody == null)
-        {
-            _rigidbody = GetComponent<Rigidbody>();
-        }
-
-        if (_animator == null)
-        {
-            _animator = GetComponentInChildren<Animator>();
-        }
-
         if (_joystick == null)
-        {
-            _joystick = FindFirstObjectByType<Joystick>();
-        }
-
-        if (_rigidbody == null || _animator == null || _joystick == null)
         {
             return;
         }
@@ -63,24 +36,24 @@ public class Player : Character
 
         if (HasReachedGoal)
         {
-            _rigidbody.linearVelocity = Vector3.zero;
+            characterRigidbody.linearVelocity = Vector3.zero;
             return;
         }
 
         if (IsStunned)
         {
-            _rigidbody.linearVelocity = Vector3.zero;
+            characterRigidbody.linearVelocity = Vector3.zero;
             isRunning = false;
             return;
         }
 
         if (!CanMove)
         {
-            _rigidbody.linearVelocity = Vector3.zero;
+            characterRigidbody.linearVelocity = Vector3.zero;
 
             if (isRunning)
             {
-                _animator.SetTrigger("Idle");
+                characterAnimation.SetMoving(false);
                 isRunning = false;
             }
 
@@ -98,12 +71,12 @@ public class Player : Character
 
         Vector3 targetVelocity = new Vector3(
             filteredDirection.x * _moveSpeed,
-            _rigidbody.linearVelocity.y,
+            characterRigidbody.linearVelocity.y,
             filteredDirection.z * _moveSpeed
         );
 
-        _rigidbody.linearVelocity = Vector3.Lerp(
-            _rigidbody.linearVelocity,
+        characterRigidbody.linearVelocity = Vector3.Lerp(
+            characterRigidbody.linearVelocity,
             targetVelocity,
             Time.fixedDeltaTime * 10f
         );
@@ -122,12 +95,12 @@ public class Player : Character
 
         if (isMoving && !isRunning)
         {
-            _animator.SetTrigger("Run");
+            characterAnimation.SetMoving(true);
             isRunning = true;
         }
         else if (!isMoving && isRunning)
         {
-            _animator.SetTrigger("Idle");
+            characterAnimation.SetMoving(false);
             isRunning = false;
         }
     }
@@ -140,32 +113,19 @@ public class Player : Character
 
     public void ResetMovementState()
     {
-        if (_rigidbody == null)
-        {
-            _rigidbody = GetComponent<Rigidbody>();
-        }
-
-        if (_animator == null)
-        {
-            _animator = GetComponentInChildren<Animator>();
-        }
-
         if (_joystick == null)
         {
             _joystick = FindFirstObjectByType<Joystick>();
         }
 
-        if (_rigidbody != null)
-        {
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-        }
+        characterRigidbody.linearVelocity = Vector3.zero;
+        characterRigidbody.angularVelocity = Vector3.zero;
 
         _joystick?.ResetInput();
 
-        if (isRunning && _animator != null)
+        if (isRunning)
         {
-            _animator.SetTrigger("Idle");
+            characterAnimation.SetMoving(false);
         }
 
         isRunning = false;

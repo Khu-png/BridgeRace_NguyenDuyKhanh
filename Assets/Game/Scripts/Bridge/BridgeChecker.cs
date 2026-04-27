@@ -45,9 +45,7 @@ public class BridgeChecker : MonoBehaviour
             {
                 ReleaseBuilder();
 
-                Rigidbody rb = character.GetComponent<Rigidbody>();
-                if (rb != null)
-                    character.Block(rb);
+                character.Block();
 
                 break;
             }

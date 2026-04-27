@@ -71,6 +71,11 @@ public class UIManager : Singleton<UIManager>
         }
     }
 
+    public void OnClickResetLevel()
+    {
+        GameManager.Instance?.GameResetLevel();
+    }
+
     private T GetUIPrefab<T>() where T : UICanvas
     {
         if (!uiCanvasPrefab.ContainsKey(typeof(T)))

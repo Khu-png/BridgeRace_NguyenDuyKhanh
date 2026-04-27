@@ -13,6 +13,10 @@ GameObject:
   - component: {fileID: 869824428346980223}
   - component: {fileID: 2915471119277205248}
   - component: {fileID: 6667522127296276268}
+  - component: {fileID: 7641814974097182301}
+  - component: {fileID: 7101000000000000001}
+  - component: {fileID: 7101000000000000002}
+  - component: {fileID: 7101000000000000003}
   - component: {fileID: 9210542977387823444}
   - component: {fileID: 3543999211966707151}
   m_Layer: 7
@@ -73,7 +77,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: d6a36ef80a452af4c8710ecdb39af569, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -146,6 +150,20 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &7641814974097182301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300912881402820571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23f48094f15969d4ca22df2868b6797f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NavMesh.NavmeshAgent
+  tf: {fileID: 2872523555309384924}
+  agent: {fileID: 6667522127296276268}
 --- !u!114 &9210542977387823444
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158,33 +176,71 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40035d5fe915c344830e7acfe7e4e02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  brickHolder: {fileID: 1432178527236413257}
-  brickOffset: 0.15
-  moveSpeed: 3
-  stackBrickScale: {x: 1.2, y: 1.2, z: 1.2}
-  colorData: {fileID: 0}
-  colorType: 0
-  characterColor: {r: 0.53333336, g: 0.7529412, b: 0.50980395, a: 1}
+  characterRigidbody: {fileID: 2915471119277205248}
+  characterAnimation: {fileID: 7101000000000000001}
+  visual: {fileID: 7101000000000000002}
+  brickStack: {fileID: 7101000000000000003}
   currentStage: {fileID: 0}
-  dropScatterRadius: 1
-  dropHeight: 0.1
+  currentBrickSpawner: {fileID: 0}
   fallDuration: 0.75
   knockdownCooldown: 0.5
-  droppedBrickFlyDuration: 0.3
-  droppedBrickFlyHeight: 0.7
-  droppedBrickCollectDelay: 0.25
-  droppedBrickScale: {x: 0.8, y: 0.8, z: 0.8}
   standUpRecoverDelay: 0.15
-  fallStateName: Fall
-  idleStateName: Idle
-  agent: {fileID: 6667522127296276268}
-  enemyRigidbody: {fileID: 2915471119277205248}
-  animator: {fileID: 2108219531822932372}
+  agent: {fileID: 7641814974097182301}
   targetBrickCount: 10
   destinationRefreshInterval: 0.25
   destinationReachedDistance: 0.2
   rotationSpeed: 12
   manualBridgeMoveSpeed: 3
+--- !u!114 &7101000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300912881402820571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05c8f95dbb544f748d34bcb74b61af6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimation
+  animator: {fileID: 2108219531822932372}
+--- !u!114 &7101000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300912881402820571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35a2ad2b46c5454597ba1b822858961d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
+  characterData: {fileID: 11400000, guid: fe4eff86bc5f9984dbd1b666f4a08182, type: 2}
+  brickHolder: {fileID: 1432178527236413257}
+  renderers: []
+--- !u!114 &7101000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300912881402820571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8001308d17fd4fa8b3918a2b58b2d321, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterBrickStack
+  brickHolder: {fileID: 1432178527236413257}
+  brickOffset: 0.15
+  moveSpeed: 3
+  stackBrickScale: {x: 1.2, y: 1.2, z: 1.2}
+  dropScatterRadius: 1
+  dropHeight: 0.1
+  droppedBrickFlyDuration: 0.3
+  droppedBrickFlyHeight: 0.7
+  droppedBrickCollectDelay: 0.25
+  droppedBrickScale: {x: 0.8, y: 0.8, z: 0.8}
 --- !u!136 &3543999211966707151
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -274,6 +330,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26d43c792ab3f5749b6121b8c5cdfb9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BrickCollector
+  _character: {fileID: 9210542977387823444}
 --- !u!1 &8916458519464197079
 GameObject:
   m_ObjectHideFlags: 0
@@ -340,6 +397,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 511a1f9da8c26ba43ac27e72a365d2d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCheck
+  owner: {fileID: 9210542977387823444}
 --- !u!1001 &8689033126955355891
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -587,7 +645,7 @@ PrefabInstance:
     - target: {fileID: 3034037253956207609, guid: d185d9ce4b252b34ea3d34d434ff9fa1, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d9f1bab9a98f8e84e822f61733f24d79, type: 2}
+      objectReference: {fileID: 2100000, guid: d6a36ef80a452af4c8710ecdb39af569, type: 2}
     - target: {fileID: 3646396693868516732, guid: d185d9ce4b252b34ea3d34d434ff9fa1, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 26.968357

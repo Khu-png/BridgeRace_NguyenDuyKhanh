@@ -11,156 +11,68 @@ public class LevelManager : Singleton<LevelManager>
 
     [SerializeField] private List<GameObject> levels;
     [SerializeField] private Transform mapHolder;
-    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private Player playerPrefab;
     [SerializeField] private CinemachineCamera cinemachineCamera;
 
     private Player playerInstance;
     private GameObject currentLevel;
     private int level;
+    private readonly List<Character> characters = new List<Character>();
+    private readonly List<Enemy> enemies = new List<Enemy>();
+    private readonly List<Rewarded> rewardedAds = new List<Rewarded>();
 
     public int CurrentLevel => level;
+    public Player CurrentPlayer => playerInstance;
 
     private void Start()
     {
         level = GetSavedLevelIndex();
-        LoadCurrentLevel();
+        ReloadCurrentLevel();
     }
 
-    private int GetSavedLevelIndex()
-    {
-        if (!HasPrefabLevels())
-        {
-            return 0;
-        }
-
-        int savedIndex = PlayerPrefs.GetInt(LevelPrefKey, 0);
-        return Mathf.Clamp(savedIndex, 0, levels.Count - 1);
-    }
-
-    private void SaveCurrentLevel()
-    {
-        PlayerPrefs.SetInt(LevelPrefKey, level);
-        PlayerPrefs.Save();
-    }
-
-    private void LoadCurrentLevel()
+    public void OnInit()
     {
         if (!HasPrefabLevels())
         {
             return;
         }
 
-        LoadLevel(level);
         InitializePlayer();
-        MovePlayerToSpawn(PlayerSpawnPosition);
         BindCameraToPlayer();
         ResetRewardedAdsForNewPlayer();
-
-        LevelText levelText = UIManager.Instance?.OpenUI<LevelText>();
-        levelText?.SetLevel(level + 1);
+        UIManager.Instance?.OpenUI<LevelText>()?.SetLevel(level + 1);
     }
 
-    public void LoadLevel(int index)
+    public void OnDespawn()
+    {
+        SimplePool.DespawnAll(FallBrickPoolKey);
+        DestroyAllCharacters();
+        DestroyCurrentLevel();
+    }
+
+    public void OnLoadLevel(int index)
     {
         if (!HasPrefabLevels())
         {
             return;
         }
 
-        if (index >= levels.Count)
-        {
-            index = 0;
-        }
-
-        if (currentLevel != null)
-        {
-            currentLevel.SetActive(false);
-            Destroy(currentLevel);
-            currentLevel = null;
-        }
-
+        DestroyCurrentLevel();
         Transform parent = mapHolder != null ? mapHolder : transform;
-        currentLevel = Instantiate(levels[index], parent);
-    }
-
-    private void InitializePlayer()
-    {
-        if (playerPrefab == null)
-        {
-            return;
-        }
-
-        if (playerInstance != null)
-        {
-            playerInstance.gameObject.SetActive(false);
-            Destroy(playerInstance.gameObject);
-            playerInstance = null;
-        }
-
-        GameObject playerObject = Instantiate(playerPrefab, PlayerSpawnPosition, Quaternion.identity);
-        playerInstance = playerObject.GetComponent<Player>();
-    }
-
-    private void MovePlayerToSpawn(Vector3 position)
-    {
-        if (playerInstance == null)
-        {
-            return;
-        }
-
-        playerInstance.transform.SetPositionAndRotation(position, Quaternion.identity);
-        playerInstance.ResetMovementState();
-
-        Rigidbody playerRigidbody = playerInstance.GetComponent<Rigidbody>();
-        if (playerRigidbody != null)
-        {
-            playerRigidbody.linearVelocity = Vector3.zero;
-            playerRigidbody.angularVelocity = Vector3.zero;
-        }
-    }
-
-    private void BindCameraToPlayer()
-    {
-        if (playerInstance == null)
-        {
-            return;
-        }
-
-        if (cinemachineCamera == null)
-        {
-            cinemachineCamera = FindFirstObjectByType<CinemachineCamera>();
-        }
-
-        if (cinemachineCamera != null)
-        {
-            cinemachineCamera.Target.TrackingTarget = playerInstance.transform;
-        }
+        currentLevel = Instantiate(levels[Mathf.Clamp(index, 0, levels.Count - 1)], parent);
     }
 
     public void OnNextLevel()
     {
-        if (HasPrefabLevels())
+        if (!HasPrefabLevels())
         {
-            level++;
-            if (level >= levels.Count)
-            {
-                level = 0;
-            }
-
-            SaveCurrentLevel();
-            ReloadCurrentLevel();
+            LoadNextScene();
             return;
         }
 
-        int currentBuildIndex = SceneManager.GetActiveScene().buildIndex;
-        int nextBuildIndex = currentBuildIndex + 1;
-
-        if (nextBuildIndex >= SceneManager.sceneCountInBuildSettings)
-        {
-            nextBuildIndex = currentBuildIndex;
-        }
-
-        SceneManager.LoadScene(nextBuildIndex);
+        level = (level + 1) % levels.Count;
+        SaveCurrentLevel();
+        ReloadCurrentLevel();
     }
 
     public void OnReplay()
@@ -174,7 +86,7 @@ public class LevelManager : Singleton<LevelManager>
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    public void ResetToLevel1() // Chi de cho testing
+    public void ResetToLevel1()
     {
         if (!HasPrefabLevels())
         {
@@ -189,47 +101,178 @@ public class LevelManager : Singleton<LevelManager>
         ReloadCurrentLevel();
     }
 
-    private void ReloadCurrentLevel()
-    {
-        SimplePool.DespawnAll(FallBrickPoolKey);
-        DestroyAllCharacters();
+    public void OnWin() => GameManager.Instance.GameWin();
+    public void OnLose() => GameManager.Instance.GameLose();
 
-        if (currentLevel != null)
+    public void RegisterCharacter(Character character)
+    {
+        if (character == null || characters.Contains(character))
         {
-            currentLevel.SetActive(false);
-            Destroy(currentLevel);
-            currentLevel = null;
+            return;
         }
 
-        LoadCurrentLevel();
+        characters.Add(character);
+
+        if (character is Player player)
+        {
+            playerInstance = player;
+        }
+        else if (character is Enemy enemy)
+        {
+            enemies.Add(enemy);
+        }
+    }
+
+    public void UnregisterCharacter(Character character)
+    {
+        if (character == null)
+        {
+            return;
+        }
+
+        characters.Remove(character);
+
+        if (character == playerInstance)
+        {
+            playerInstance = null;
+        }
+        else if (character is Enemy enemy)
+        {
+            enemies.Remove(enemy);
+        }
+    }
+
+    public void RegisterRewardedAd(Rewarded rewardedAd)
+    {
+        if (rewardedAd != null && !rewardedAds.Contains(rewardedAd))
+        {
+            rewardedAds.Add(rewardedAd);
+        }
+    }
+
+    public void UnregisterRewardedAd(Rewarded rewardedAd)
+    {
+        rewardedAds.Remove(rewardedAd);
+    }
+
+    public void SetGameplayActorsPaused(bool isPaused)
+    {
+        if (isPaused)
+        {
+            playerInstance?.ResetMovementState();
+        }
+
+        for (int i = enemies.Count - 1; i >= 0; i--)
+        {
+            Enemy enemy = enemies[i];
+            if (enemy == null)
+            {
+                enemies.RemoveAt(i);
+                continue;
+            }
+
+            if (isPaused)
+            {
+                enemy.PauseMovement();
+            }
+            else
+            {
+                enemy.ResumeMovement();
+            }
+        }
+    }
+
+    private int GetSavedLevelIndex()
+    {
+        return HasPrefabLevels() ? Mathf.Clamp(PlayerPrefs.GetInt(LevelPrefKey, 0), 0, levels.Count - 1) : 0;
+    }
+
+    private void SaveCurrentLevel()
+    {
+        PlayerPrefs.SetInt(LevelPrefKey, level);
+        PlayerPrefs.Save();
+    }
+
+    private void ReloadCurrentLevel()
+    {
+        OnDespawn();
+        OnLoadLevel(level);
+        OnInit();
+    }
+
+    private void LoadNextScene()
+    {
+        int currentBuildIndex = SceneManager.GetActiveScene().buildIndex;
+        int nextBuildIndex = Mathf.Min(currentBuildIndex + 1, SceneManager.sceneCountInBuildSettings - 1);
+        SceneManager.LoadScene(nextBuildIndex);
+    }
+
+    private void InitializePlayer()
+    {
+        if (playerPrefab == null)
+        {
+            return;
+        }
+
+        if (playerInstance != null)
+        {
+            Destroy(playerInstance.gameObject);
+        }
+
+        playerInstance = Instantiate(playerPrefab, PlayerSpawnPosition, Quaternion.identity);
+        playerInstance.transform.SetPositionAndRotation(PlayerSpawnPosition, Quaternion.identity);
+        playerInstance.ResetMovementState();
+    }
+
+    private void BindCameraToPlayer()
+    {
+        if (playerInstance == null || cinemachineCamera == null)
+        {
+            return;
+        }
+
+        cinemachineCamera.Target.TrackingTarget = playerInstance.transform;
+    }
+
+    private void DestroyCurrentLevel()
+    {
+        if (currentLevel == null)
+        {
+            return;
+        }
+
+        Destroy(currentLevel);
+        currentLevel = null;
     }
 
     private void DestroyAllCharacters()
     {
-        Character[] characters = FindObjectsByType<Character>(FindObjectsSortMode.None);
-        foreach (Character character in characters)
-        {
-            if (character == null)
-            {
-                continue;
-            }
-
-            character.gameObject.SetActive(false);
-            Destroy(character.gameObject);
-        }
-
+        Character[] currentCharacters = characters.ToArray();
+        characters.Clear();
+        enemies.Clear();
         playerInstance = null;
-    }
 
-    public void OnWin() => GameManager.Instance.GameWin();
-    public void OnLose() => GameManager.Instance.GameLose();
+        foreach (Character character in currentCharacters)
+        {
+            if (character != null)
+            {
+                Destroy(character.gameObject);
+            }
+        }
+    }
 
     private void ResetRewardedAdsForNewPlayer()
     {
-        Rewarded[] rewardedAds = FindObjectsByType<Rewarded>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (Rewarded rewardedAd in rewardedAds)
+        for (int i = rewardedAds.Count - 1; i >= 0; i--)
         {
-            rewardedAd?.ResetRewardAvailability();
+            Rewarded rewardedAd = rewardedAds[i];
+            if (rewardedAd == null)
+            {
+                rewardedAds.RemoveAt(i);
+                continue;
+            }
+
+            rewardedAd.ResetRewardAvailability();
         }
     }
 

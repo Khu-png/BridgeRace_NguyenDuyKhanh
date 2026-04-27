@@ -1268,7 +1268,7 @@ MonoBehaviour:
   - {fileID: 100745637541351905, guid: 7240f0de7c68e1142b2ed74a3790ccd1, type: 3}
   - {fileID: 8707343464928410891, guid: d556624cc64ec3341892b3560e3ac36a, type: 3}
   mapHolder: {fileID: 981974426}
-  playerPrefab: {fileID: 3531075265170016923, guid: f7e567046eb9cd64c87dbc1db98bac6a, type: 3}
+  playerPrefab: {fileID: 5359204225701679856, guid: f7e567046eb9cd64c87dbc1db98bac6a, type: 3}
   cinemachineCamera: {fileID: 24638428}
 --- !u!4 &981974426
 Transform:
@@ -1491,7 +1491,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dde5279c61ae50a409520c0febfae528, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  player: {fileID: 0}
 --- !u!4 &1103813878
 Transform:
   m_ObjectHideFlags: 0
@@ -1645,7 +1644,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1235339351}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 552979201}
+        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
+        m_MethodName: OnClickResetLevel
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1235339351
 MonoBehaviour:
   m_ObjectHideFlags: 0

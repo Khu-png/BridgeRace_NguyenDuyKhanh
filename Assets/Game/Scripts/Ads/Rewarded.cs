@@ -16,6 +16,8 @@ public class Rewarded : MonoBehaviour, IUnityAdsLoadListener, IUnityAdsShowListe
 
   void Awake()
   {   
+    LevelManager.Instance?.RegisterRewardedAd(this);
+
     // Get the Ad Unit ID for the current platform:
     _adUnitId = Application.platform == RuntimePlatform.IPhonePlayer
       ? _iOSAdUnitId
@@ -31,6 +33,11 @@ public class Rewarded : MonoBehaviour, IUnityAdsLoadListener, IUnityAdsShowListe
   void Start()
   {
     StartCoroutine(LoadAdWhenInitialized());
+  }
+
+  void OnDestroy()
+  {
+    LevelManager.Instance?.UnregisterRewardedAd(this);
   }
 
   IEnumerator LoadAdWhenInitialized()
@@ -187,7 +194,7 @@ public class Rewarded : MonoBehaviour, IUnityAdsLoadListener, IUnityAdsShowListe
 
   private bool GrantPlayerBricks(int brickCount)
   {
-    Player player = FindFirstObjectByType<Player>();
+    Player player = LevelManager.Instance != null ? LevelManager.Instance.CurrentPlayer : null;
     if (player == null)
     {
       Debug.LogWarning("Cannot grant rewarded bricks because Player was not found.");

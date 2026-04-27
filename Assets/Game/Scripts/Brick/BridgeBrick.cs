@@ -3,57 +3,35 @@ using UnityEngine;
 
 public class BridgeBrick : MonoBehaviour
 {
-    [SerializeField] private GameObject modelRoot;
+    [SerializeField] private Transform modelRoot;
+    [SerializeField] private MeshRenderer[] modelRenderers;
 
     private Bridge bridge;
     private int brickIndex;
     private readonly HashSet<Character> charactersInside = new HashSet<Character>();
 
-    public bool IsRevealed => modelRoot != null && modelRoot.activeSelf;
-
-    private void Awake()
-    {
-        if (modelRoot == null && transform.childCount > 0)
-        {
-            // TODO : Không dùng getcomponent/getchild.  
-            modelRoot = transform.GetChild(0).gameObject;
-        }
-    }
+    public bool IsRevealed => modelRoot.gameObject.activeSelf;
 
     public void Initialize(Bridge ownerBridge, int index)
     {
         bridge = ownerBridge;
         brickIndex = index;
 
-        if (modelRoot == null && transform.childCount > 0)
-        {
-            modelRoot = transform.GetChild(0).gameObject;
-        }
-
-        if (modelRoot != null)
-        {
-            modelRoot.SetActive(false);
-        }
+        modelRoot.gameObject.SetActive(false);
     }
 
     public bool IsOwnedBy(Color color)
     {
         if (!IsRevealed) return false;
 
-        MeshRenderer renderer = GetComponentInChildren<MeshRenderer>(true);
-        if (renderer == null) return false;
-
-        return Vector4.Distance(renderer.material.color, color) <= 0.01f;
+        return Vector4.Distance(modelRenderers[0].material.color, color) <= 0.01f;
     }
 
     public void RevealAndPaint(Color color)
     {
-        if (modelRoot != null)
-        {
-            modelRoot.SetActive(true);
-        }
+        modelRoot.gameObject.SetActive(true);
 
-        foreach (MeshRenderer renderer in GetComponentsInChildren<MeshRenderer>(true))
+        foreach (MeshRenderer renderer in modelRenderers)
         {
             renderer.material = new Material(renderer.material);
             renderer.material.color = color;

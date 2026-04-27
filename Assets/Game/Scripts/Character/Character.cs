@@ -1,46 +1,26 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 
 public class Character : MonoBehaviour
 {
     private const string InitialStageName = "Stage1";
-    private const string StackBrickPoolKey = "PlayerBrick";
-    private const string DroppedBrickPoolKey = "FallBrick";
-    private const string FallbackDroppedBrickPoolKey = "SpawnBrick";
     private const string FallStateName = "Fall";
     private const string IdleStateName = "Idle";
-    private const string DanceTriggerName = "Dance";
 
-    [Header("Brick Stack")]
-    [SerializeField] protected Transform brickHolder;
-    [SerializeField] protected float brickOffset = 0.5f;
-    [SerializeField] protected float moveSpeed = 8f;
-    [SerializeField] protected Vector3 stackBrickScale = new Vector3(0.9f, 0.9f, 0.9f);
-
-    [Header("Color")]
-    [SerializeField] private ColorDataSO colorData;
-    [SerializeField] private ColorType colorType = ColorType.None;
-    [HideInInspector] public Color characterColor = Color.white;
+    [Header("References")]
+    [SerializeField] protected Rigidbody characterRigidbody;
+    [SerializeField] protected CharacterAnimation characterAnimation;
+    [SerializeField] private CharacterVisual visual;
+    [SerializeField] private CharacterBrickStack brickStack;
 
     [Header("Stage")]
     [SerializeField] private StageController currentStage;
     [SerializeField] private BrickSpawner currentBrickSpawner;
 
-    protected Animator fallAnimator;
     [Header("Combat")]
-    [SerializeField] protected float dropScatterRadius = 0.6f;
-    [SerializeField] protected float dropHeight = 0.1f;
     [SerializeField] protected float fallDuration = 0.75f;
     [SerializeField] protected float knockdownCooldown = 0.5f;
-    [SerializeField] protected float droppedBrickFlyDuration = 0.18f;
-    [SerializeField] protected float droppedBrickFlyHeight = 0.35f;
-    [SerializeField] protected float droppedBrickCollectDelay = 0.25f;
-    [SerializeField] protected Vector3 droppedBrickScale = new Vector3(0.8f, 0.8f, 0.8f);
     [SerializeField] protected float standUpRecoverDelay = 0.15f;
 
-    protected Stack<GameObject> brickStack = new Stack<GameObject>();
-    private Coroutine updateRoutine;
     private float stunEndTime;
     private float lastKnockdownTime = -999f;
     private bool isKnockedDown;
@@ -54,37 +34,22 @@ public class Character : MonoBehaviour
     public bool IsStunned => isKnockedDown || Time.time < stunEndTime;
     public bool IsBuildingBridge => isBuildingBridge;
     public bool HasReachedGoal => hasReachedGoal;
+    public Color characterColor => visual.CharacterColor;
 
     protected virtual void Start()
     {
-        ApplyColorSelection();
-        CacheAnimator();
-        SetAnimatorTimeScaleMode(AnimatorUpdateMode.Normal);
+        LevelManager.Instance?.RegisterCharacter(this);
 
-        StageController initialStage = FindInitialStageController();
-        if (initialStage != null)
-        {
-            currentStage = initialStage;
-        }
-        else if (currentStage == null)
-        {
-            currentStage = FindClosestStageController();
-        }
-
-        if (currentBrickSpawner == null && currentStage != null)
-        {
-            currentBrickSpawner = currentStage.BrickSpawner;
-        }
-
-        if (currentStage != null)
-        {
-            currentStage.RegisterCharacter(this);
-        }
+        visual.RandomizeColor();
+        characterAnimation.SetTimeScaleMode(AnimatorUpdateMode.Normal);
+        ResolveInitialStage();
+        currentStage?.RegisterCharacter(this);
     }
 
-    protected virtual void OnValidate()
+    protected virtual void OnDestroy()
     {
-        ApplyColorSelection();
+        LevelManager.Instance?.UnregisterCharacter(this);
+        currentStage?.UnregisterCharacter(this);
     }
 
     public void SetCurrentStage(StageController newStage, BrickSpawner targetSpawner = null)
@@ -97,36 +62,19 @@ public class Character : MonoBehaviour
 
         isBuildingBridge = false;
         currentStage?.UnregisterCharacter(this);
-
         currentStage = newStage;
         currentBrickSpawner = resolvedSpawner;
-
         currentStage?.RegisterCharacter(this);
     }
 
     public void CollectBrick(Vector3 pickupPosition)
     {
-        GameObject brick = SpawnStackBrick(pickupPosition);
-        if (brick == null) return;
-
-        brickStack.Push(brick);
-        RefreshStackVisuals();
+        brickStack.Collect(pickupPosition, characterColor);
     }
 
     public GameObject RemoveBrick()
     {
-        if (brickStack.Count == 0) return null;
-
-        GameObject topBrick = brickStack.Pop();
-        SimplePool.Despawn(topBrick);
-        RefreshStackVisuals();
-
-        return topBrick;
-    }
-
-    public bool CanBeKnockedDown()
-    {
-        return Time.time >= lastKnockdownTime + knockdownCooldown;
+        return brickStack.Remove();
     }
 
     public void SetBridgeBuildingState(bool isBuilding)
@@ -143,9 +91,8 @@ public class Character : MonoBehaviour
         isKnockedDown = true;
         hasEnteredFallState = false;
 
-        TriggerFallAnimation();
-
-        DropAllBricks();
+        characterAnimation.PlayFall();
+        brickStack.DropAll(transform.position, characterColor);
         OnKnockedDown();
         return true;
     }
@@ -154,18 +101,8 @@ public class Character : MonoBehaviour
     {
         if (!isKnockedDown) return;
 
-        if (fallAnimator == null)
-        {
-            if (Time.time >= stunEndTime)
-            {
-                isKnockedDown = false;
-            }
-
-            return;
-        }
-
-        AnimatorStateInfo stateInfo = fallAnimator.GetCurrentAnimatorStateInfo(0);
-        bool isInTransition = fallAnimator.IsInTransition(0);
+        AnimatorStateInfo stateInfo = characterAnimation.CurrentState;
+        bool isInTransition = characterAnimation.IsInTransition;
 
         if (!hasEnteredFallState && stateInfo.IsName(FallStateName))
         {
@@ -176,120 +113,64 @@ public class Character : MonoBehaviour
         {
             stunEndTime = Time.time + standUpRecoverDelay;
             isKnockedDown = false;
-            return;
         }
     }
 
-    protected virtual void OnKnockedDown()
+    public void Block()
     {
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-        }
-    }
-
-    public void DropAllBricks()
-    {
-        int droppedCount = brickStack.Count;
-        ClearStackBricks();
-        RefreshStackVisuals();
-
-        for (int i = 0; i < droppedCount; i++)
-        {
-            SpawnDroppedBrick();
-        }
-    }
-
-    public void Block(Rigidbody rb)
-    {
-        rb.linearVelocity = Vector3.zero;
+        characterRigidbody.linearVelocity = Vector3.zero;
     }
 
     public virtual void ReachGoal(Transform goalTransform)
     {
-        if (goalTransform == null)
-        {
-            return;
-        }
-
         SetBridgeBuildingState(false);
         hasReachedGoal = true;
         StopForGoal();
-        ClearStackBricks();
-        RefreshStackVisuals();
+        brickStack.Clear();
 
         transform.SetParent(null, true);
         transform.SetPositionAndRotation(
             goalTransform.position,
             goalTransform.rotation * Quaternion.Euler(0f, 180f, 0f));
 
-        SetAnimatorTimeScaleMode(AnimatorUpdateMode.UnscaledTime);
-        SetAnimatorRootMotion(false);
-        TriggerDanceAnimation();
+        characterAnimation.SetTimeScaleMode(AnimatorUpdateMode.UnscaledTime);
+        characterAnimation.SetRootMotion(false);
+        characterAnimation.PlayDance();
     }
 
-    protected IEnumerator UpdateStackSmooth()
+    protected virtual void OnKnockedDown()
     {
-        GameObject[] bricks = brickStack.ToArray();
-
-        for (int i = 0; i < bricks.Length; i++)
-        {
-            StartCoroutine(MoveToStackPosition(bricks[i], i));
-        }
-
-        yield break;
+        characterRigidbody.linearVelocity = Vector3.zero;
+        characterRigidbody.angularVelocity = Vector3.zero;
     }
 
-    protected IEnumerator MoveToStackPosition(GameObject brick, int index)
+    protected virtual void StopForGoal()
     {
-        Vector3 start = brick.transform.localPosition;
-        Vector3 target = new Vector3(0, index * brickOffset, -0.5f);
-        Quaternion startRotation = brick.transform.localRotation;
-        Quaternion targetRotation = Quaternion.identity;
-
-        float t = 0f;
-        while (t < 1f)
-        {
-            t += Time.deltaTime * moveSpeed;
-            brick.transform.localPosition = Vector3.Lerp(start, target, t);
-            brick.transform.localRotation = Quaternion.Slerp(startRotation, targetRotation, t);
-            yield return null;
-        }
-
-        brick.transform.localPosition = target;
-        brick.transform.localRotation = targetRotation;
+        characterRigidbody.linearVelocity = Vector3.zero;
+        characterRigidbody.angularVelocity = Vector3.zero;
     }
 
-    private void CacheAnimator()
+    private bool CanBeKnockedDown()
     {
-        if (fallAnimator == null)
-        {
-            fallAnimator = GetComponentInChildren<Animator>();
-        }
+        return Time.time >= lastKnockdownTime + knockdownCooldown;
     }
 
-    private void SetAnimatorTimeScaleMode(AnimatorUpdateMode updateMode)
+    private void ResolveInitialStage()
     {
-        CacheAnimator();
-        if (fallAnimator == null)
+        StageController initialStage = FindInitialStageController();
+        if (initialStage != null)
         {
-            return;
+            currentStage = initialStage;
+        }
+        else if (currentStage == null)
+        {
+            currentStage = FindClosestStageController();
         }
 
-        fallAnimator.updateMode = updateMode;
-    }
-
-    private void SetAnimatorRootMotion(bool useRootMotion)
-    {
-        CacheAnimator();
-        if (fallAnimator == null)
+        if (currentBrickSpawner == null && currentStage != null)
         {
-            return;
+            currentBrickSpawner = currentStage.BrickSpawner;
         }
-
-        fallAnimator.applyRootMotion = useRootMotion;
     }
 
     private StageController FindClosestStageController()
@@ -300,17 +181,13 @@ public class Character : MonoBehaviour
 
         foreach (StageController stage in stages)
         {
-            if (stage == null)
-            {
-                continue;
-            }
+            if (stage == null) continue;
 
             float sqrDistance = (stage.transform.position - transform.position).sqrMagnitude;
-            if (sqrDistance < closestDistance)
-            {
-                closestDistance = sqrDistance;
-                closestStage = stage;
-            }
+            if (sqrDistance >= closestDistance) continue;
+
+            closestDistance = sqrDistance;
+            closestStage = stage;
         }
 
         return closestStage;
@@ -329,193 +206,5 @@ public class Character : MonoBehaviour
         }
 
         return null;
-    }
-
-    private void ApplyColorSelection()
-    {
-        if (colorData == null || colorType == ColorType.None)
-        {
-            return;
-        }
-
-        Material selectedMaterial = colorData.GetMat(colorType);
-        if (selectedMaterial == null)
-        {
-            return;
-        }
-
-        characterColor = selectedMaterial.color;
-
-        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
-        foreach (Renderer renderer in renderers)
-        {
-            if (renderer == null) continue;
-            if (brickHolder != null && renderer.transform.IsChildOf(brickHolder)) continue;
-
-            if (Application.isPlaying)
-            {
-                renderer.material = selectedMaterial;
-            }
-            else
-            {
-                renderer.sharedMaterial = selectedMaterial;
-            }
-        }
-    }
-
-    private void TriggerFallAnimation()
-    {
-        if (fallAnimator == null) return;
-
-        fallAnimator.ResetTrigger("Idle");
-        fallAnimator.ResetTrigger("Run");
-        fallAnimator.SetTrigger("Fall");
-    }
-
-    protected virtual void StopForGoal()
-    {
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            return;
-        }
-
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-    }
-
-    private void TriggerDanceAnimation()
-    {
-        CacheAnimator();
-        if (fallAnimator == null) return;
-
-        fallAnimator.ResetTrigger("Idle");
-        fallAnimator.ResetTrigger("Run");
-        fallAnimator.ResetTrigger("Fall");
-        fallAnimator.SetTrigger(DanceTriggerName);
-    }
-
-    private GameObject SpawnStackBrick(Vector3 pickupPosition)
-    {
-        GameObject brick = SimplePool.Spawn(StackBrickPoolKey, pickupPosition, Quaternion.identity);
-        if (brick == null) return null;
-
-        brick.transform.SetParent(brickHolder, true);
-        brick.transform.localRotation = Quaternion.identity;
-        brick.transform.localScale = stackBrickScale;
-
-        foreach (MeshRenderer mr in brick.GetComponentsInChildren<MeshRenderer>())
-        {
-            mr.material = new Material(mr.material);
-            mr.material.color = characterColor;
-        }
-
-        return brick;
-    }
-
-    private void RefreshStackVisuals()
-    {
-        if (updateRoutine != null)
-        {
-            StopCoroutine(updateRoutine);
-        }
-
-        updateRoutine = StartCoroutine(UpdateStackSmooth());
-    }
-
-    private void ClearStackBricks()
-    {
-        while (brickStack.Count > 0)
-        {
-            GameObject stackBrick = brickStack.Pop();
-            if (stackBrick != null)
-            {
-                SimplePool.Despawn(stackBrick);
-            }
-        }
-
-        foreach (GameObject remainingBrick in GetActiveStackBrickObjects())
-        {
-            SimplePool.Despawn(remainingBrick);
-        }
-    }
-
-    private void SpawnDroppedBrick()
-    {
-        Vector2 randomCircle = Random.insideUnitCircle * dropScatterRadius;
-        Vector3 startPosition = transform.position + Vector3.up * dropHeight;
-        Vector3 targetPosition = transform.position + new Vector3(randomCircle.x, dropHeight, randomCircle.y);
-
-        GameObject droppedBrick = SimplePool.Spawn(DroppedBrickPoolKey, startPosition, Quaternion.identity);
-        if (droppedBrick == null)
-        {
-            droppedBrick = SimplePool.Spawn(FallbackDroppedBrickPoolKey, startPosition, Quaternion.identity);
-        }
-
-        if (droppedBrick == null) return;
-
-        droppedBrick.transform.localScale = droppedBrickScale;
-
-        Brick brick = droppedBrick.GetComponent<Brick>();
-        if (brick != null)
-        {
-            brick.spawnPos = targetPosition;
-            brick.SetNeutral();
-            brick.SetCollectDelay(droppedBrickCollectDelay);
-            brick.SetSource(null, null);
-        }
-
-        StartCoroutine(AnimateDroppedBrick(droppedBrick.transform, targetPosition));
-    }
-
-    private List<GameObject> GetActiveStackBrickObjects()
-    {
-        List<GameObject> stackBricks = new List<GameObject>();
-
-        if (brickHolder == null)
-        {
-            return stackBricks;
-        }
-
-        for (int i = 0; i < brickHolder.childCount; i++)
-        {
-            Transform child = brickHolder.GetChild(i);
-            if (child == null || !child.gameObject.activeSelf)
-            {
-                continue;
-            }
-
-            PoolManager.PoolObject poolObject = child.GetComponent<PoolManager.PoolObject>();
-            if (poolObject != null && poolObject.key == StackBrickPoolKey)
-            {
-                stackBricks.Add(child.gameObject);
-            }
-        }
-
-        return stackBricks;
-    }
-
-    private IEnumerator AnimateDroppedBrick(Transform brickTransform, Vector3 targetPosition)
-    {
-        Vector3 startPosition = brickTransform.position;
-        Quaternion startRotation = brickTransform.rotation;
-        Quaternion targetRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-
-        float elapsed = 0f;
-
-        while (elapsed < droppedBrickFlyDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / droppedBrickFlyDuration);
-            Vector3 position = Vector3.Lerp(startPosition, targetPosition, t);
-            position.y += Mathf.Sin(t * Mathf.PI) * droppedBrickFlyHeight;
-
-            brickTransform.position = position;
-            brickTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
-            yield return null;
-        }
-
-        brickTransform.position = targetPosition;
-        brickTransform.rotation = targetRotation;
     }
 }

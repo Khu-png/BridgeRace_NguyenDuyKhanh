@@ -67,7 +67,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba1d2ccf30566a04084e22942b621ecb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BridgeBrick
-  modelRoot: {fileID: 0}
+  modelRoot: {fileID: 3199968215437453694}
+  modelRenderers:
+  - {fileID: 5486641242050311986}
 --- !u!1001 &3162137572085190293
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -132,5 +134,10 @@ PrefabInstance:
 --- !u!4 &3199968215437453694 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
+  m_PrefabInstance: {fileID: 3162137572085190293}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &5486641242050311986 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 93803dd40ab41424fbe0b06ecf4b3d64, type: 3}
   m_PrefabInstance: {fileID: 3162137572085190293}
   m_PrefabAsset: {fileID: 0}

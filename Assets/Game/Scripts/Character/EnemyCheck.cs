@@ -2,17 +2,10 @@ using UnityEngine;
 
 public class EnemyCheck : MonoBehaviour
 {
-    private Character owner;
-
-    private void Awake()
-    {
-        owner = GetComponentInParent<Character>();
-    }
+    [SerializeField] private Character owner;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (owner == null) return;
-
         Character otherCharacter = other.GetComponentInParent<Character>();
         if (otherCharacter == null || otherCharacter == owner) return;
 
