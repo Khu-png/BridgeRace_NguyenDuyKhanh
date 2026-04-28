@@ -62,7 +62,7 @@ public class CharacterBrickStack : MonoBehaviour
 
         for (int i = 0; i < droppedCount; i++)
         {
-            SpawnDroppedBrick(origin, color);
+            SpawnDroppedBrick(origin);
         }
     }
 
@@ -120,7 +120,7 @@ public class CharacterBrickStack : MonoBehaviour
         brick.transform.localRotation = Quaternion.identity;
     }
 
-    private void SpawnDroppedBrick(Vector3 origin, Color color)
+    private void SpawnDroppedBrick(Vector3 origin)
     {
         Vector2 randomCircle = Random.insideUnitCircle * dropScatterRadius;
         Vector3 startPosition = origin + Vector3.up * dropHeight;
@@ -135,7 +135,6 @@ public class CharacterBrickStack : MonoBehaviour
         if (droppedBrick == null) return;
 
         droppedBrick.transform.localScale = droppedBrickScale;
-        PaintBrick(droppedBrick, color);
 
         Brick brick = droppedBrick.GetComponent<Brick>();
         if (brick != null)

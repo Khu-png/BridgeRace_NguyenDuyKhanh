@@ -698,6 +698,8 @@ MonoBehaviour:
   useSafeArea: 0
   useWidescreenProcessing: 0
   popups: []
+  musicSlider: {fileID: 3872355867063161945}
+  sfxSlider: {fileID: 5538308742533981489}
 --- !u!1 &5797883081074916902
 GameObject:
   m_ObjectHideFlags: 0

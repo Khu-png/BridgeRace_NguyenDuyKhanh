@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class AudioManager : Singleton<AudioManager>
 {
+    private const string MusicVolumeKey = "MusicVolume";
+    private const string SfxVolumeKey = "SfxVolume";
+
     public Sound[] musicSound, sfxSound;
     public AudioSource musicSource, sfxSource;
 
@@ -9,6 +12,7 @@ public class AudioManager : Singleton<AudioManager>
     {
         base.Awake();
         DontDestroyOnLoad(gameObject);
+        ApplySavedVolumes();
     }
 
     public void Start()
@@ -43,7 +47,7 @@ public class AudioManager : Singleton<AudioManager>
     {
         if (musicSource != null)
         {
-            musicSource.volume = volume;
+            musicSource.volume = Mathf.Clamp01(volume);
         }
     }
 
@@ -51,9 +55,13 @@ public class AudioManager : Singleton<AudioManager>
     {
         if (sfxSource != null)
         {
-            sfxSource.volume = volume;
+            sfxSource.volume = Mathf.Clamp01(volume);
         }
     }
 
-    
+    private void ApplySavedVolumes()
+    {
+        SetMusicVolume(PlayerPrefs.GetFloat(MusicVolumeKey, 1f));
+        SetSFXVolume(PlayerPrefs.GetFloat(SfxVolumeKey, 1f));
+    }
 }
