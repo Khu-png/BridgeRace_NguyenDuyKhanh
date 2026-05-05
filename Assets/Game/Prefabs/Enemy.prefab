@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 7101000000000000003}
   - component: {fileID: 9210542977387823444}
   - component: {fileID: 3543999211966707151}
+  - component: {fileID: 958615793491838137}
   m_Layer: 7
   m_Name: Enemy
   m_TagString: Enemy
@@ -164,33 +165,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NavMesh.NavmeshAgent
   tf: {fileID: 2872523555309384924}
   agent: {fileID: 6667522127296276268}
---- !u!114 &9210542977387823444
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1300912881402820571}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40035d5fe915c344830e7acfe7e4e02, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  characterRigidbody: {fileID: 2915471119277205248}
-  characterAnimation: {fileID: 7101000000000000001}
-  visual: {fileID: 7101000000000000002}
-  brickStack: {fileID: 7101000000000000003}
-  currentStage: {fileID: 0}
-  currentBrickSpawner: {fileID: 0}
-  fallDuration: 0.75
-  knockdownCooldown: 0.5
-  standUpRecoverDelay: 0.15
-  agent: {fileID: 7641814974097182301}
-  targetBrickCount: 10
-  destinationRefreshInterval: 0.25
-  destinationReachedDistance: 0.2
-  rotationSpeed: 12
-  manualBridgeMoveSpeed: 3
 --- !u!114 &7101000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -218,7 +192,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
   characterData: {fileID: 11400000, guid: fe4eff86bc5f9984dbd1b666f4a08182, type: 2}
   brickHolder: {fileID: 1432178527236413257}
-  renderers: []
+  renderers:
+  - {fileID: 869824428346980223}
+  - {fileID: 5948891552072469770}
+  colorType: 0
 --- !u!114 &7101000000000000003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -233,7 +210,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterBrickStack
   brickHolder: {fileID: 1432178527236413257}
   brickOffset: 0.15
-  moveSpeed: 3
+  moveSpeed: 2
   stackBrickScale: {x: 1.2, y: 1.2, z: 1.2}
   dropScatterRadius: 1
   dropHeight: 0.1
@@ -241,6 +218,31 @@ MonoBehaviour:
   droppedBrickFlyHeight: 0.7
   droppedBrickCollectDelay: 0.25
   droppedBrickScale: {x: 0.8, y: 0.8, z: 0.8}
+--- !u!114 &9210542977387823444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300912881402820571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40035d5fe915c344830e7acfe7e4e02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  characterRigidbody: {fileID: 2915471119277205248}
+  characterAnimation: {fileID: 7101000000000000001}
+  visual: {fileID: 7101000000000000002}
+  brickStack: {fileID: 7101000000000000003}
+  currentStage: {fileID: 0}
+  currentBrickSpawner: {fileID: 0}
+  fallDuration: 0.75
+  knockdownCooldown: 0.5
+  standUpRecoverDelay: 0.15
+  movement: {fileID: 958615793491838137}
+  minTargetBrickCount: 5
+  maxTargetBrickCount: 15
+  destinationRefreshInterval: 0.25
 --- !u!136 &3543999211966707151
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -264,6 +266,22 @@ CapsuleCollider:
   m_Height: 1.143052
   m_Direction: 1
   m_Center: {x: 0, y: 0.5795348, z: 0}
+--- !u!114 &958615793491838137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300912881402820571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86107e9506474e2080fa1b962d46b833, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyMovement
+  agent: {fileID: 7641814974097182301}
+  destinationReachedDistance: 0.2
+  rotationSpeed: 12
+  manualBridgeMoveSpeed: 3
 --- !u!1 &6049818141108062001
 GameObject:
   m_ObjectHideFlags: 0
@@ -777,6 +795,11 @@ PrefabInstance:
 --- !u!4 &1432178527236413257 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -1480070881545233990, guid: d185d9ce4b252b34ea3d34d434ff9fa1, type: 3}
+  m_PrefabInstance: {fileID: 8689033126955355891}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &5948891552072469770 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3034037253956207609, guid: d185d9ce4b252b34ea3d34d434ff9fa1, type: 3}
   m_PrefabInstance: {fileID: 8689033126955355891}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &8382549408701199266 stripped

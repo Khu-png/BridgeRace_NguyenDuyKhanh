@@ -12,17 +12,22 @@ public class Player : Character
     [SerializeField] private float groundCheckHeight = 0.5f;
     [SerializeField] private float groundCheckDistance = 1.5f;
     [SerializeField] private float edgeStopPadding = 0.1f;
+    [SerializeField] private float groundStickSpeed = 1f;
+    [SerializeField] private float edgeSlideAngle = 35f;
 
     private bool isRunning;
 
-    protected override void Start()
+    public override void OnInit()
     {
-        base.Start();
+        base.OnInit();
 
         if (_joystick == null)
         {
             _joystick = FindFirstObjectByType<Joystick>();
         }
+
+        CanMove = true;
+        ResetMovementState();
     }
 
     private void FixedUpdate()
@@ -67,23 +72,20 @@ public class Player : Character
             direction.Normalize();
         }
 
-        Vector3 filteredDirection = FilterDirectionByGround(direction);
+        Vector3 moveDirection = FilterDirectionByGround(direction);
 
-        Vector3 targetVelocity = new Vector3(
-            filteredDirection.x * _moveSpeed,
-            characterRigidbody.linearVelocity.y,
-            filteredDirection.z * _moveSpeed
-        );
+        bool hasMoveInput = moveDirection.sqrMagnitude > 0.001f;
+        bool isGrounded = TryGetGroundNormal(out Vector3 groundNormal);
 
-        characterRigidbody.linearVelocity = Vector3.Lerp(
-            characterRigidbody.linearVelocity,
-            targetVelocity,
-            Time.fixedDeltaTime * 10f
-        );
+        Vector3 targetVelocity = hasMoveInput
+            ? GetGroundAdjustedVelocity(moveDirection, groundNormal, isGrounded)
+            : GetIdleVelocity(isGrounded, groundNormal);
 
-        if (filteredDirection.sqrMagnitude > 0.001f)
+        characterRigidbody.linearVelocity = targetVelocity;
+
+        if (direction.sqrMagnitude > 0.001f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(filteredDirection);
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
@@ -91,7 +93,7 @@ public class Player : Character
             );
         }
 
-        bool isMoving = filteredDirection.sqrMagnitude > 0.001f;
+        bool isMoving = hasMoveInput;
 
         if (isMoving && !isRunning)
         {
@@ -136,37 +138,76 @@ public class Player : Character
         if (direction.sqrMagnitude <= 0.001f) return Vector3.zero;
         if (groundMask.value == 0) return direction;
 
-        float filteredX = direction.x;
-        float filteredZ = direction.z;
-
-        if (Mathf.Abs(direction.x) > 0.001f && !CanMoveAxis(new Vector3(direction.x, 0f, 0f)))
+        if (HasGroundAhead(direction))
         {
-            filteredX = 0f;
+            return direction;
         }
 
-        if (Mathf.Abs(direction.z) > 0.001f && !CanMoveAxis(new Vector3(0f, 0f, direction.z)))
+        Vector3 rightSlideDirection = Quaternion.AngleAxis(edgeSlideAngle, Vector3.up) * direction;
+        if (HasGroundAhead(rightSlideDirection))
         {
-            filteredZ = 0f;
+            return rightSlideDirection.normalized;
         }
 
-        Vector3 filteredDirection = new Vector3(filteredX, 0f, filteredZ);
-        if (filteredDirection.magnitude > 1f)
+        Vector3 leftSlideDirection = Quaternion.AngleAxis(-edgeSlideAngle, Vector3.up) * direction;
+        if (HasGroundAhead(leftSlideDirection))
         {
-            filteredDirection.Normalize();
+            return leftSlideDirection.normalized;
         }
 
-        return filteredDirection;
+        return Vector3.zero;
     }
 
-    private bool CanMoveAxis(Vector3 axisDirection)
+    private bool HasGroundAhead(Vector3 direction)
     {
         if (groundMask.value == 0) return true;
 
-        Vector3 axisVelocity = axisDirection.normalized * _moveSpeed;
-        Vector3 nextPosition = transform.position + axisVelocity * Time.fixedDeltaTime;
-        nextPosition += axisDirection.normalized * edgeStopPadding;
+        Vector3 normalizedDirection = direction.normalized;
+        Vector3 nextPosition = transform.position + normalizedDirection * (_moveSpeed * Time.fixedDeltaTime + edgeStopPadding);
 
         Vector3 rayOrigin = nextPosition + Vector3.up * groundCheckHeight;
         return Physics.Raycast(rayOrigin, Vector3.down, groundCheckDistance, groundMask);
+    }
+
+    private Vector3 GetGroundAdjustedVelocity(Vector3 direction, Vector3 groundNormal, bool isGrounded)
+    {
+        if (groundMask.value == 0 || !isGrounded)
+        {
+            return new Vector3(direction.x * _moveSpeed, characterRigidbody.linearVelocity.y, direction.z * _moveSpeed);
+        }
+
+        Vector3 projectedDirection = Vector3.ProjectOnPlane(direction, groundNormal);
+        Vector3 moveDirection = projectedDirection.sqrMagnitude > 0.001f ? projectedDirection.normalized : direction;
+        return moveDirection * _moveSpeed + GetGroundStickVelocity(groundNormal);
+    }
+
+    private Vector3 GetIdleVelocity(bool isGrounded, Vector3 groundNormal)
+    {
+        if (isGrounded)
+        {
+            return GetGroundStickVelocity(groundNormal);
+        }
+
+        Vector3 currentVelocity = characterRigidbody.linearVelocity;
+        return new Vector3(0f, currentVelocity.y, 0f);
+    }
+
+    private Vector3 GetGroundStickVelocity(Vector3 groundNormal)
+    {
+        return -groundNormal * groundStickSpeed;
+    }
+
+    private bool TryGetGroundNormal(out Vector3 groundNormal)
+    {
+        Vector3 rayOrigin = transform.position + Vector3.up * groundCheckHeight;
+
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, groundCheckDistance, groundMask))
+        {
+            groundNormal = hit.normal;
+            return true;
+        }
+
+        groundNormal = Vector3.up;
+        return false;
     }
 }

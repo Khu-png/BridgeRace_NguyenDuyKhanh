@@ -27,7 +27,10 @@ public class CharacterVisual : MonoBehaviour
 
     public void RandomizeColor()
     {
-        colorType = characterData.GetRandomColorType();
+        colorType = LevelManager.Instance != null
+            ? LevelManager.Instance.GetUniqueCharacterColorType(characterData)
+            : characterData.GetRandomColorType();
+
         ApplyColor();
     }
 

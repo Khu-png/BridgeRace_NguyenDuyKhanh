@@ -11,6 +11,11 @@ public class FindBrickState : IEnemyState
 
     public void OnEnter()
     {
+        if (enemy.HasNoBricks())
+        {
+            enemy.RandomizeTargetBrickCount();
+        }
+
         enemy.ResetRefreshTimer();
     }
 

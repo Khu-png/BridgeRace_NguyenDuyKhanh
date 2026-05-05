@@ -102,34 +102,31 @@ public class StageController : MonoBehaviour
         return closestWall;
     }
 
-    public BridgeWall GetBestBridgeWallForEnemy(Vector3 fromPosition, Enemy enemy)
+    public Bridge GetBestBridgeForEnemy(Vector3 fromPosition, Enemy enemy)
     {
-        BridgeWall[] bridgeWalls = GetComponentsInChildren<BridgeWall>();
-        BridgeWall bestWall = null;
+        Bridge[] bridges = GetComponentsInChildren<Bridge>();
+        Bridge bestBridge = null;
         int bestOwnedBrickCount = -1;
         float bestDistance = float.MaxValue;
 
-        foreach (BridgeWall wall in bridgeWalls)
+        foreach (Bridge bridge in bridges)
         {
-            if (wall == null || !wall.enabled) continue;
-
-            Bridge bridge = wall.GetComponent<Bridge>() ?? wall.GetComponentInParent<Bridge>();
             if (enemy != null && (bridge == null || !bridge.CanAcceptEnemy(enemy))) continue;
             if (enemy != null && bridge != null && !enemy.CanReachBridge(bridge)) continue;
             if (bridge == null || bridge.IsRetired || bridge.currentIndex >= bridge.brickCount) continue;
 
             int ownedBrickCount = bridge.CountBuiltBricksByColor(enemy.characterColor);
-            float sqrDistance = (wall.transform.position - fromPosition).sqrMagnitude;
+            float sqrDistance = (bridge.GetBridgeEntryPosition() - fromPosition).sqrMagnitude;
 
             if (ownedBrickCount > bestOwnedBrickCount ||
                 (ownedBrickCount == bestOwnedBrickCount && sqrDistance < bestDistance))
             {
                 bestOwnedBrickCount = ownedBrickCount;
                 bestDistance = sqrDistance;
-                bestWall = wall;
+                bestBridge = bridge;
             }
         }
 
-        return bestWall;
+        return bestBridge;
     }
 }

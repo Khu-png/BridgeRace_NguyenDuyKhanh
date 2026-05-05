@@ -2,12 +2,14 @@ using UnityEngine;
 
 public class CharacterAnimation : MonoBehaviour
 {
-    private const string IdleTriggerName = "Idle";
-    private const string RunTriggerName = "Run";
-    private const string FallTriggerName = "Fall";
-    private const string DanceTriggerName = "Dance";
+    public const string IdleTriggerName = "Idle";
+    public const string RunTriggerName = "Run";
+    public const string FallTriggerName = "Fall";
+    public const string DanceTriggerName = "Dance";
 
     [SerializeField] private Animator animator;
+
+    private string currentAnimationName;
 
     public AnimatorStateInfo CurrentState => animator.GetCurrentAnimatorStateInfo(0);
     public bool IsInTransition => animator.IsInTransition(0);
@@ -22,23 +24,24 @@ public class CharacterAnimation : MonoBehaviour
         animator.applyRootMotion = useRootMotion;
     }
 
-    public void PlayFall()
-    {
-        animator.ResetTrigger(IdleTriggerName);
-        animator.ResetTrigger(RunTriggerName);
-        animator.SetTrigger(FallTriggerName);
-    }
-
-    public void PlayDance()
-    {
-        animator.ResetTrigger(IdleTriggerName);
-        animator.ResetTrigger(RunTriggerName);
-        animator.ResetTrigger(FallTriggerName);
-        animator.SetTrigger(DanceTriggerName);
-    }
-
     public void SetMoving(bool isMoving)
     {
-        animator.SetTrigger(isMoving ? RunTriggerName : IdleTriggerName);
+        ChangeAnimation(isMoving ? RunTriggerName : IdleTriggerName);
+    }
+
+    public void ChangeAnimation(string animationName)
+    {
+        if (string.IsNullOrEmpty(animationName) || currentAnimationName == animationName)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(currentAnimationName))
+        {
+            animator.ResetTrigger(currentAnimationName);
+        }
+
+        currentAnimationName = animationName;
+        animator.SetTrigger(currentAnimationName);
     }
 }

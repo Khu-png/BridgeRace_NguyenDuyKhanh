@@ -27,6 +27,7 @@ public class Character : MonoBehaviour
     private bool hasEnteredFallState;
     private bool isBuildingBridge;
     private bool hasReachedGoal;
+    private bool hasDespawned;
 
     public int BrickCount => brickStack.Count;
     public StageController CurrentStage => currentStage;
@@ -34,20 +35,47 @@ public class Character : MonoBehaviour
     public bool IsStunned => isKnockedDown || Time.time < stunEndTime;
     public bool IsBuildingBridge => isBuildingBridge;
     public bool HasReachedGoal => hasReachedGoal;
+    public Vector3 MovementVelocity => characterRigidbody != null ? characterRigidbody.linearVelocity : Vector3.zero;
     public Color characterColor => visual.CharacterColor;
 
     protected virtual void Start()
     {
-        LevelManager.Instance?.RegisterCharacter(this);
-
-        visual.RandomizeColor();
-        characterAnimation.SetTimeScaleMode(AnimatorUpdateMode.Normal);
-        ResolveInitialStage();
-        currentStage?.RegisterCharacter(this);
+        OnInit();
     }
 
     protected virtual void OnDestroy()
     {
+        OnDespawn();
+    }
+
+    public virtual void OnInit()
+    {
+        LevelManager.Instance?.RegisterCharacter(this);
+
+        hasDespawned = false;
+        stunEndTime = 0f;
+        lastKnockdownTime = -999f;
+        isKnockedDown = false;
+        hasEnteredFallState = false;
+        isBuildingBridge = false;
+        hasReachedGoal = false;
+
+        visual.RandomizeColor();
+        characterAnimation.SetTimeScaleMode(AnimatorUpdateMode.Normal);
+        characterAnimation.SetRootMotion(false);
+        ChangeAnimation(CharacterAnimation.IdleTriggerName);
+        ResolveInitialStage();
+        currentStage?.RegisterCharacter(this);
+    }
+
+    public virtual void OnDespawn()
+    {
+        if (hasDespawned)
+        {
+            return;
+        }
+
+        hasDespawned = true;
         LevelManager.Instance?.UnregisterCharacter(this);
         currentStage?.UnregisterCharacter(this);
     }
@@ -91,7 +119,7 @@ public class Character : MonoBehaviour
         isKnockedDown = true;
         hasEnteredFallState = false;
 
-        characterAnimation.PlayFall();
+        ChangeAnimation(CharacterAnimation.FallTriggerName);
         brickStack.DropAll(transform.position, characterColor);
         OnKnockedDown();
         return true;
@@ -121,6 +149,11 @@ public class Character : MonoBehaviour
         characterRigidbody.linearVelocity = Vector3.zero;
     }
 
+    protected void ChangeAnimation(string animationName)
+    {
+        characterAnimation.ChangeAnimation(animationName);
+    }
+
     public virtual void ReachGoal(Transform goalTransform)
     {
         SetBridgeBuildingState(false);
@@ -135,7 +168,7 @@ public class Character : MonoBehaviour
 
         characterAnimation.SetTimeScaleMode(AnimatorUpdateMode.UnscaledTime);
         characterAnimation.SetRootMotion(false);
-        characterAnimation.PlayDance();
+        ChangeAnimation(CharacterAnimation.DanceTriggerName);
     }
 
     protected virtual void OnKnockedDown()

@@ -27,23 +27,23 @@ public class BuildBridgeState : IEnemyState
     {
         if (enemy.IsCrossingBridge) return;
 
-        if (enemy.TargetBridgeWall == null)
+        if (enemy.TargetBridge == null)
         {
             enemy.ChangeState(new FindBrickState(enemy));
             return;
         }
 
-        if (enemy.TargetBridgeWall.Bridge != null && enemy.TargetBridgeWall.Bridge.IsFull())
+        if (enemy.TargetBridge.IsFull())
         {
-            Bridge completedBridge = enemy.TargetBridgeWall.Bridge;
-            bool isBridgeCompleter = completedBridge != null && completedBridge.BridgeCompleter == enemy;
+            Bridge completedBridge = enemy.TargetBridge;
+            bool isBridgeCompleter = completedBridge.BridgeCompleter == enemy;
 
             if (hasReachedBuildPoint && isBridgeCompleter)
             {
-                StageController nextStage = enemy.TargetBridgeWall.NextStage;
-                BrickSpawner targetSpawner = completedBridge != null ? completedBridge.TargetSpawner : null;
+                StageController nextStage = completedBridge.TargetStage;
+                BrickSpawner targetSpawner = completedBridge.TargetSpawner;
 
-                enemy.TargetBridgeWall.Bridge?.ReleaseEnemy(enemy);
+                completedBridge.ReleaseEnemy(enemy);
 
                 if (nextStage != null)
                 {
@@ -107,10 +107,11 @@ public class BuildBridgeState : IEnemyState
 
     public void OnExit()
     {
-        if (enemy.TargetBridgeWall != null)
+        if (enemy.TargetBridge != null)
         {
-            enemy.TargetBridgeWall.Bridge?.ReleaseEnemy(enemy);
+            enemy.TargetBridge.ReleaseEnemy(enemy);
         }
+
         enemy.SetBridgeBuildingState(false);
         enemy.SetTransformDrivenMovement(false);
         enemy.EnableAgentMovement();

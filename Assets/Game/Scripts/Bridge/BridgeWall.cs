@@ -21,14 +21,6 @@ public class BridgeWall : MonoBehaviour
             bridge = GetComponent<Bridge>() ?? GetComponentInParent<Bridge>();
         }
 
-        if (nextStage == null)
-        {
-            Goal goal = FindFirstObjectByType<Goal>();
-            if (goal != null)
-            {
-                nextStage = goal.GetComponent<StageController>() ?? goal.GetComponentInParent<StageController>();
-            }
-        }
     }
     
     public void OnBridgeTriggered(Bridge other, Character character)
@@ -46,7 +38,7 @@ public class BridgeWall : MonoBehaviour
 
         if (nextStage != null)
         {
-            character.SetCurrentStage(nextStage, bridge != null ? bridge.TargetSpawner : null);
+            character.SetCurrentStage(nextStage, bridge.TargetSpawner);
         }
 
         EndPoint();
@@ -57,7 +49,30 @@ public class BridgeWall : MonoBehaviour
         if (bridge == null) return;
 
         filledCount = Mathf.Clamp(brickIndex + 1, 0, bridge.brickCount);
+        ApplyFilledCountPosition();
+    }
 
+    public void MoveWallToIndexIfAhead(int brickIndex)
+    {
+        if (bridge == null) return;
+
+        int targetFilledCount = Mathf.Clamp(brickIndex + 1, 0, bridge.brickCount);
+        if (targetFilledCount <= filledCount) return;
+
+        filledCount = targetFilledCount;
+        ApplyFilledCountPosition();
+    }
+
+    public void MoveWallBeforeIndex(int brickIndex)
+    {
+        if (bridge == null) return;
+
+        filledCount = Mathf.Clamp(brickIndex, 0, bridge.brickCount);
+        ApplyFilledCountPosition();
+    }
+
+    private void ApplyFilledCountPosition()
+    {
         if (filledCount >= bridge.brickCount)
         {
             EndPoint();

@@ -95,7 +95,7 @@ public class CharacterBrickStack : MonoBehaviour
 
         for (int i = 0; i < activeBricks.Length; i++)
         {
-            StartCoroutine(MoveToStackPosition(activeBricks[i], i));
+            StartCoroutine(MoveToStackPosition(activeBricks[i], activeBricks.Length - 1 - i));
         }
 
         yield break;

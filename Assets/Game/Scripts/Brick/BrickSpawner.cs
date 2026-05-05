@@ -102,6 +102,8 @@ public class BrickSpawner : MonoBehaviour
         if (characterBrickCount[character] >= maxBricksPerCharacter) return;
 
         GameObject brick = SimplePool.Spawn(brickKey, pos, Quaternion.identity);
+        if (brick == null) return;
+
         brick.transform.SetParent(root);
 
         Brick brickScript = brick.GetComponent<Brick>();

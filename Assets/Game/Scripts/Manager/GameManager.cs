@@ -36,6 +36,7 @@ public class GameManager : Singleton<GameManager>
         DontDestroyOnLoad(gameObject);
         EnterState(GameState.MainMenu, false);
         OpenMainMenu();
+        LevelLoader.PlayEnd();
     }
 
     public static void ChangeState(GameState state) => gameState = state;
@@ -45,6 +46,7 @@ public class GameManager : Singleton<GameManager>
     {
         StopPendingLevelChange();
         EnterState(GameState.Playing, true);
+        LevelManager.Instance?.SetGameplayActorsPaused(false);
         UIManager.Instance?.CloseAll();
         ShowGameplayUI();
     }
@@ -101,6 +103,7 @@ public class GameManager : Singleton<GameManager>
         EnterState(GameState.Playing, true);
         UIManager.Instance?.CloseAll();
         LevelManager.Instance?.OnReplay();
+        LevelManager.Instance?.SetGameplayActorsPaused(false);
         ShowGameplayUI();
     }
 
@@ -118,19 +121,27 @@ public class GameManager : Singleton<GameManager>
     public void GameMenu()
     {
         StopPendingLevelChange();
-        ClearGameplayObjects();
         EnterState(GameState.MainMenu, false);
-        LevelManager.Instance?.OnReplay();
-        OpenMainMenu();
+        UIManager.Instance?.CloseAll();
+        LevelLoader.PlayMenuTransition(() =>
+        {
+            ClearGameplayObjects();
+            LevelManager.Instance?.OnReplay();
+            OpenMainMenu();
+        });
     }
 
     public void GameResetLevel()
     {
         StopPendingLevelChange();
-        ClearGameplayObjects();
         EnterState(GameState.MainMenu, false);
-        LevelManager.Instance?.ResetToLevel1();
-        OpenMainMenu();
+        UIManager.Instance?.CloseAll();
+        LevelLoader.PlayMenuTransition(() =>
+        {
+            ClearGameplayObjects();
+            LevelManager.Instance?.ResetToLevel1();
+            OpenMainMenu();
+        });
     }
 
     private IEnumerator GameNextLevelRoutine()
@@ -138,11 +149,18 @@ public class GameManager : Singleton<GameManager>
         yield return new WaitForSeconds(1);
 
         UIManager.Instance?.CloseAll();
-        LevelManager.Instance?.OnNextLevel();
+        bool isTransitionFinished = false;
+        LevelLoader.PlayMenuTransition(() =>
+        {
+            LevelManager.Instance?.OnNextLevel();
+            EnterState(GameState.MainMenu, false);
+            OpenMainMenu();
+        }, () => isTransitionFinished = true);
+
+        yield return new WaitUntil(() => isTransitionFinished);
+
         isChangingLevel = false;
         levelChangeRoutine = null;
-        EnterState(GameState.MainMenu, false);
-        OpenMainMenu();
     }
 
     private void EnterState(GameState state, bool canMove, bool updateResumeState = true)

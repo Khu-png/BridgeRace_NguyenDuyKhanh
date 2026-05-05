@@ -38,6 +38,7 @@ public partial class Bridge : MonoBehaviour
 
     public StageController SourceStage => sourceStage;
     public BrickSpawner TargetSpawner => targetSpawner;
+    public StageController TargetStage => targetSpawner != null ? targetSpawner.GetComponentInParent<StageController>() : null;
     public bool IsRetired => isRetired;
     public Character LastProgressCharacter => lastProgressCharacter;
     public Character BridgeCompleter => bridgeCompleter;
@@ -108,6 +109,18 @@ public partial class Bridge : MonoBehaviour
     {
         if (isRetired || bridgeWall == null) return;
         bridgeWall.MoveWallToIndex(brickIndex);
+    }
+
+    public void MoveWallForwardIfAhead(int brickIndex)
+    {
+        if (isRetired || bridgeWall == null) return;
+        bridgeWall.MoveWallToIndexIfAhead(brickIndex);
+    }
+
+    public void MoveWallToBlockBrick(int brickIndex)
+    {
+        if (isRetired || bridgeWall == null) return;
+        bridgeWall.MoveWallBeforeIndex(brickIndex);
     }
 
     public void TryComplete(Character character)

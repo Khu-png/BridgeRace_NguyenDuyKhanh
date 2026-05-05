@@ -5,16 +5,25 @@ public static class SimplePool
 {
     public static GameObject Spawn(string key, Vector3 pos, Quaternion rot)
     {
-        return PoolManager.Instance.Get(key, pos, rot);
+        PoolManager poolManager = PoolManager.Instance;
+        return poolManager != null ? poolManager.Get(key, pos, rot) : null;
     }
 
     public static void Despawn(GameObject obj)
     {
-        PoolManager.Instance.Return(obj);
+        if (obj == null) return;
+
+        PoolManager poolManager = PoolManager.Instance;
+        if (poolManager == null) return;
+
+        poolManager.Return(obj);
     }
 
     public static void DespawnAll(string key)
     {
-        PoolManager.Instance.ReturnAllActive(key);
+        PoolManager poolManager = PoolManager.Instance;
+        if (poolManager == null) return;
+
+        poolManager.ReturnAllActive(key);
     }
 }

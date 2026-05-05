@@ -20,6 +20,7 @@ public class LevelManager : Singleton<LevelManager>
     private readonly List<Character> characters = new List<Character>();
     private readonly List<Enemy> enemies = new List<Enemy>();
     private readonly List<Rewarded> rewardedAds = new List<Rewarded>();
+    private readonly HashSet<ColorType> usedCharacterColors = new HashSet<ColorType>();
 
     public int CurrentLevel => level;
     public Player CurrentPlayer => playerInstance;
@@ -155,6 +156,18 @@ public class LevelManager : Singleton<LevelManager>
         rewardedAds.Remove(rewardedAd);
     }
 
+    public ColorType GetUniqueCharacterColorType(CharacterDataSO characterData)
+    {
+        if (characterData == null)
+        {
+            return ColorType.None;
+        }
+
+        ColorType colorType = characterData.GetRandomColorTypeExcept(usedCharacterColors);
+        usedCharacterColors.Add(colorType);
+        return colorType;
+    }
+
     public void SetGameplayActorsPaused(bool isPaused)
     {
         if (isPaused)
@@ -195,6 +208,7 @@ public class LevelManager : Singleton<LevelManager>
 
     private void ReloadCurrentLevel()
     {
+        usedCharacterColors.Clear();
         OnDespawn();
         OnLoadLevel(level);
         OnInit();
@@ -241,6 +255,7 @@ public class LevelManager : Singleton<LevelManager>
             return;
         }
 
+        currentLevel.SetActive(false);
         Destroy(currentLevel);
         currentLevel = null;
     }
@@ -256,6 +271,7 @@ public class LevelManager : Singleton<LevelManager>
         {
             if (character != null)
             {
+                character.OnDespawn();
                 Destroy(character.gameObject);
             }
         }

@@ -55,23 +55,38 @@ public class BridgeBrick : MonoBehaviour
 
         if (!canBuildNewBrick && !canOverwriteExistingBrick) return;
 
-        character.SetBridgeBuildingState(true);
-
         if (IsOwnedBy(character.characterColor))
         {
-            bridge?.RegisterBrickProgress(brickIndex, character);
             if (character.CompareTag("Player") && !bridge.IsRetired)
             {
-                bridge?.MoveWallForward(brickIndex);
+                bridge?.MoveWallForwardIfAhead(brickIndex);
             }
+
             if (bridge != null && bridge.IsFull())
             {
                 bridge.TryComplete(character);
             }
+
             return;
         }
 
-        if (character.BrickCount <= 0) return;
+        if (character.BrickCount <= 0)
+        {
+            if (character.CompareTag("Player") && !bridge.IsRetired)
+            {
+                if (!IsMovingForwardOnBridge(character))
+                {
+                    return;
+                }
+
+                bridge?.MoveWallToBlockBrick(brickIndex);
+                character.Block();
+            }
+
+            return;
+        }
+
+        character.SetBridgeBuildingState(true);
 
         character.RemoveBrick();
         RevealAndPaint(character.characterColor);
@@ -93,5 +108,28 @@ public class BridgeBrick : MonoBehaviour
 
         charactersInside.Remove(character);
         character.SetBridgeBuildingState(false);
+    }
+
+    private bool IsMovingForwardOnBridge(Character character)
+    {
+        Vector3 moveDirection = Flatten(character.MovementVelocity);
+        if (moveDirection.sqrMagnitude <= 0.001f)
+        {
+            moveDirection = Flatten(character.transform.forward);
+        }
+
+        Vector3 bridgeDirection = Flatten(bridge.GetBuildMoveDirection());
+        if (moveDirection.sqrMagnitude <= 0.001f || bridgeDirection.sqrMagnitude <= 0.001f)
+        {
+            return true;
+        }
+
+        return Vector3.Dot(moveDirection.normalized, bridgeDirection.normalized) > 0f;
+    }
+
+    private static Vector3 Flatten(Vector3 vector)
+    {
+        vector.y = 0f;
+        return vector;
     }
 }

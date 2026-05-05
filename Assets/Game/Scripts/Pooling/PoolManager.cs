@@ -62,7 +62,7 @@ public class PoolManager : Singleton<PoolManager>
 
     public GameObject Get(string key, Vector3 pos, Quaternion rot)
     {
-        if (!poolDictionary.ContainsKey(key))
+        if (string.IsNullOrEmpty(key) || poolDictionary == null || !poolDictionary.ContainsKey(key))
         {
             return null;
         }
@@ -73,6 +73,10 @@ public class PoolManager : Singleton<PoolManager>
         if (pool.Count == 0)
         {
             PoolElement element = elements.Find(e => e.key == key);
+            if (element == null || element.prefab == null)
+            {
+                return null;
+            }
 
             obj = Instantiate(element.prefab);
 
@@ -100,6 +104,11 @@ public class PoolManager : Singleton<PoolManager>
 
     public void Return(GameObject obj)
     {
+        if (obj == null || poolDictionary == null || parentDictionary == null)
+        {
+            return;
+        }
+
         PoolObject poolObj = obj.GetComponent<PoolObject>();
 
         if (poolObj == null)
@@ -108,6 +117,10 @@ public class PoolManager : Singleton<PoolManager>
         }
 
         string key = poolObj.key;
+        if (string.IsNullOrEmpty(key) || !poolDictionary.ContainsKey(key) || !parentDictionary.ContainsKey(key))
+        {
+            return;
+        }
 
         obj.SetActive(false);
         obj.transform.SetParent(parentDictionary[key]);

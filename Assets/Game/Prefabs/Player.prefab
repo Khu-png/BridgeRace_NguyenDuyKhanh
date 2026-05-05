@@ -216,6 +216,59 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &6101000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3531075265170016923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05c8f95dbb544f748d34bcb74b61af6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimation
+  animator: {fileID: 1834685537749072025}
+--- !u!114 &6101000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3531075265170016923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35a2ad2b46c5454597ba1b822858961d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
+  characterData: {fileID: 11400000, guid: fe4eff86bc5f9984dbd1b666f4a08182, type: 2}
+  brickHolder: {fileID: 9104511113852776861}
+  renderers:
+  - {fileID: 5216055378444499311}
+  - {fileID: 4555130505410784222}
+  colorType: 0
+--- !u!114 &6101000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3531075265170016923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8001308d17fd4fa8b3918a2b58b2d321, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterBrickStack
+  brickHolder: {fileID: 9104511113852776861}
+  brickOffset: 0.15
+  moveSpeed: 2
+  stackBrickScale: {x: 1.2, y: 1.2, z: 1.2}
+  dropScatterRadius: 1
+  dropHeight: 0.1
+  droppedBrickFlyDuration: 0.3
+  droppedBrickFlyHeight: 0.7
+  droppedBrickCollectDelay: 0.25
+  droppedBrickScale: {x: 0.8, y: 0.8, z: 0.8}
 --- !u!114 &5359204225701679856
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -245,56 +298,8 @@ MonoBehaviour:
   groundCheckHeight: 0.5
   groundCheckDistance: 1.5
   edgeStopPadding: 0.1
---- !u!114 &6101000000000000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3531075265170016923}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 05c8f95dbb544f748d34bcb74b61af6c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimation
-  animator: {fileID: 1834685537749072025}
---- !u!114 &6101000000000000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3531075265170016923}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35a2ad2b46c5454597ba1b822858961d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
-  characterData: {fileID: 11400000, guid: fe4eff86bc5f9984dbd1b666f4a08182, type: 2}
-  brickHolder: {fileID: 9104511113852776861}
-  renderers: []
---- !u!114 &6101000000000000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3531075265170016923}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8001308d17fd4fa8b3918a2b58b2d321, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterBrickStack
-  brickHolder: {fileID: 9104511113852776861}
-  brickOffset: 0.15
-  moveSpeed: 2
-  stackBrickScale: {x: 1.2, y: 1.2, z: 1.2}
-  dropScatterRadius: 1
-  dropHeight: 0.1
-  droppedBrickFlyDuration: 0.3
-  droppedBrickFlyHeight: 0.7
-  droppedBrickCollectDelay: 0.25
-  droppedBrickScale: {x: 0.8, y: 0.8, z: 0.8}
+  groundStickSpeed: 1
+  edgeSlideAngle: 35
 --- !u!1 &5711491399546119540
 GameObject:
   m_ObjectHideFlags: 0
@@ -770,6 +775,11 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!137 &4555130505410784222 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3034037253956207609, guid: d185d9ce4b252b34ea3d34d434ff9fa1, type: 3}
+  m_PrefabInstance: {fileID: 1525598502138325031}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &9104511113852776861 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -1480070881545233990, guid: d185d9ce4b252b34ea3d34d434ff9fa1, type: 3}
