@@ -8,30 +8,19 @@ public class Goal : MonoBehaviour
 
     private Character topOne;
 
-    private void Awake()
-    {
-        ResolveCameraFollow();
-    }
-
     private void Reset()
     {
         Collider goalCollider = GetComponent<Collider>();
-        if (goalCollider != null)
+        if (goalCollider is MeshCollider meshCollider)
         {
-            if (goalCollider is MeshCollider meshCollider)
+            if (meshCollider.convex)
             {
-                if (meshCollider.convex)
-                {
-                    meshCollider.isTrigger = true;
-                }
+                meshCollider.isTrigger = true;
             }
-            else
-            {
-                goalCollider.isTrigger = true;
-            }
+            return;
         }
 
-        ResolveCameraFollow();
+        goalCollider.isTrigger = true;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -48,7 +37,7 @@ public class Goal : MonoBehaviour
         }
 
         topOne = character;
-        topOne.ReachGoal(goalRoot != null ? goalRoot : transform);
+        topOne.ReachGoal(goalRoot);
 
         if (topOne is Enemy topEnemy)
         {
@@ -77,51 +66,30 @@ public class Goal : MonoBehaviour
 
     private void FocusCameraOnTopOne()
     {
-        if (topOne == null)
+        if (cameraFollow == null)
         {
-            return;
+            cameraFollow = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
         }
 
-        ResolveCameraFollow();
-
-        if (cameraFollow != null)
-        {
-            cameraFollow.SetTarget(topOne.transform);
-        }
+        cameraFollow?.SetTarget(topOne.transform);
     }
 
     private void ResolveGameResult(Character character)
     {
-        if (character == null || LevelManager.Instance == null)
+        if (character == null)
         {
             return;
         }
 
         if (character.CompareTag("Player"))
         {
-            LevelManager.Instance.OnWin();
+            GameManager.Instance.GameWin();
             return;
         }
 
         if (character.CompareTag("Enemy"))
         {
-            LevelManager.Instance.OnLose();
-        }
-    }
-
-    private void ResolveCameraFollow()
-    {
-        if (cameraFollow == null)
-        {
-            if (Camera.main != null)
-            {
-                cameraFollow = Camera.main.GetComponent<CameraFollow>();
-            }
-
-            if (cameraFollow == null)
-            {
-                cameraFollow = FindFirstObjectByType<CameraFollow>();
-            }
+            GameManager.Instance.GameLose();
         }
     }
 }

@@ -155,7 +155,7 @@ public class StageController : MonoBehaviour
             if (enemy != null && bridge != null && !enemy.CanReachBridge(bridge)) continue;
             if (bridge == null || bridge.IsRetired || bridge.currentIndex >= bridge.brickCount) continue;
 
-            int ownedBrickCount = bridge.CountBuiltBricksByColor(enemy.characterColor);
+            int ownedBrickCount = bridge.CountBuiltBricksByColor(enemy.characterColorType);
             float sqrDistance = (bridge.GetBridgeEntryPosition() - fromPosition).sqrMagnitude;
 
             if (ownedBrickCount > bestOwnedBrickCount ||

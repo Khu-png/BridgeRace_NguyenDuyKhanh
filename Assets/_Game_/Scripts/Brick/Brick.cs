@@ -1,9 +1,10 @@
 using UnityEngine;
 
-public class Brick : MonoBehaviour
+public class Brick : PoolObject
 {
     [SerializeField] private MeshRenderer meshRenderer;
 
+    public ColorType ownerColorType { get; private set; }
     public Color ownerColor;
     public Vector3 spawnPos;
     public BrickSpawner sourceSpawner { get; private set; }
@@ -11,16 +12,18 @@ public class Brick : MonoBehaviour
     public bool IsNeutral { get; private set; }
     private float collectibleAtTime;
 
-    public void SetOwnerColor(Color color, Material material = null)
+    public void SetOwnerColor(ColorType colorType, Color color, Material material = null)
     {
+        ownerColorType = colorType;
         ownerColor = color;
         IsNeutral = false;
         collectibleAtTime = Time.time;
         ApplyVisual(color, material);
     }
 
-    public void SetNeutralColor(Color color, Material material = null)
+    public void SetNeutralColor(ColorType colorType, Color color, Material material = null)
     {
+        ownerColorType = colorType;
         ownerColor = color;
         IsNeutral = true;
         collectibleAtTime = Time.time;
@@ -29,6 +32,7 @@ public class Brick : MonoBehaviour
 
     public void SetNeutral()
     {
+        ownerColorType = ColorType.None;
         IsNeutral = true;
         collectibleAtTime = Time.time;
     }
@@ -44,14 +48,14 @@ public class Brick : MonoBehaviour
         sourceStage = stage;
     }
 
-    public bool CanBeCollectedBy(Color collectorColor)
+    public bool CanBeCollectedBy(ColorType collectorColorType)
     {
         if (Time.time < collectibleAtTime)
         {
             return false;
         }
 
-        return IsNeutral || Vector4.Distance(ownerColor, collectorColor) <= 0.01f;
+        return IsNeutral || ownerColorType == collectorColorType;
     }
 
     private void ApplyVisual(Color color, Material material)

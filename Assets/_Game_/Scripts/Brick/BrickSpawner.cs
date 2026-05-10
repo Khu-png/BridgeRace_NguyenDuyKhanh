@@ -102,7 +102,7 @@ public class BrickSpawner : MonoBehaviour
 
         if (characterBrickCount[character] >= maxBricksPerCharacter) return;
 
-        GameObject brick = SimplePool.Spawn(brickKey, pos, Quaternion.identity);
+        Brick brick = SimplePool.Get<Brick>(brickKey, pos, Quaternion.identity);
         if (brick == null) return;
 
         brick.transform.SetParent(root);
@@ -111,7 +111,7 @@ public class BrickSpawner : MonoBehaviour
         if (brickScript != null)
         {
             brickScript.spawnPos = pos;
-            brickScript.SetOwnerColor(character.characterColor, character.characterMaterial);
+            brickScript.SetOwnerColor(character.characterColorType, character.characterColor, character.characterMaterial);
             brickScript.SetSource(this, stageController);
             spawnedBricksByCharacter[character].Add(brickScript);
         }
@@ -270,7 +270,7 @@ public class BrickSpawner : MonoBehaviour
         {
             Brick brick = remainingBricksBuffer[i];
             emptyPositions.Add(brick.spawnPos);
-            SimplePool.Despawn(brick.gameObject);
+            SimplePool.Return(brick.gameObject);
         }
 
         remainingBricksBuffer.Clear();
@@ -278,7 +278,7 @@ public class BrickSpawner : MonoBehaviour
         characterBrickCount[character] = 0;
     }
 
-    public Brick GetClosestBrick(Vector3 fromPosition, Color color)
+    public Brick GetClosestBrick(Vector3 fromPosition, ColorType colorType)
     {
         Brick closestBrick = null;
         float closestDistance = float.MaxValue;
@@ -288,7 +288,7 @@ public class BrickSpawner : MonoBehaviour
             foreach (Brick brick in brickSet)
             {
                 if (brick == null || !brick.gameObject.activeInHierarchy) continue;
-                if (Vector4.Distance(brick.ownerColor, color) > 0.01f) continue;
+                if (brick.ownerColorType != colorType) continue;
 
                 float sqrDistance = (brick.transform.position - fromPosition).sqrMagnitude;
                 if (sqrDistance < closestDistance)

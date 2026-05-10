@@ -19,7 +19,11 @@ public class BridgeWall : MonoBehaviour
         
         if (bridge == null)
         {
-            bridge = GetComponent<Bridge>() ?? GetComponentInParent<Bridge>();
+            bridge = GetComponent<Bridge>();
+            if (bridge == null)
+            {
+                bridge = GetComponentInParent<Bridge>();
+            }
         }
 
     }

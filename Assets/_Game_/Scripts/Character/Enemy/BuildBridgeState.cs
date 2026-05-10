@@ -72,6 +72,16 @@ public class BuildBridgeState : IEnemyState
             return;
         }
 
+        if (enemy.TargetBridge.IsRetired)
+        {
+            enemy.SetBridgeBuildingState(false);
+            enemy.SetTransformDrivenMovement(false);
+            enemy.TrySnapToNavMesh();
+            enemy.EnableAgentMovement();
+            enemy.ChangeState(new FindBrickState(enemy));
+            return;
+        }
+
         if (!hasReachedBuildPoint)
         {
             if (enemy.IsAtBuildPoint() || enemy.IsNearDestination())

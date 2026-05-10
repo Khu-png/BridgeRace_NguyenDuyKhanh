@@ -58,6 +58,8 @@ public class EnemyMovement : MonoBehaviour
 
     public void EnableAgentMovement()
     {
+        if (agent == null) return;
+
         agent?.EnableMovement();
         isTransformDrivenMovement = false;
     }

@@ -87,7 +87,7 @@ public class Enemy : Character
     public void RefreshBrickTarget()
     {
         BrickSpawner spawner = CurrentBrickSpawner != null ? CurrentBrickSpawner : CurrentStage.BrickSpawner;
-        Brick brick = spawner != null ? spawner.GetClosestBrick(transform.position, characterColor) : null;
+        Brick brick = spawner != null ? spawner.GetClosestBrick(transform.position, characterColorType) : null;
         MoveToTargetOrStop(brick != null ? brick.transform.position : null);
     }
 
@@ -136,20 +136,22 @@ public class Enemy : Character
 
     protected override void OnKnockedDown()
     {
-        bridgeBuilder.ReleaseReservation();
-        movement.PauseAgentAtCurrentPosition();
+        SetBridgeBuildingState(false);
+        bridgeBuilder?.ReleaseReservation();
+        movement?.PauseAgentAtCurrentPosition();
     }
 
     protected override void StopForGoal()
     {
-        bridgeBuilder.ReleaseReservation();
+        SetBridgeBuildingState(false);
+        bridgeBuilder?.ReleaseReservation();
         refreshTimer = 0f;
-        bridgeBuilder.Reset(transform.position);
-        movement.DisableAgent();
-        movement.StopRigidbody();
+        bridgeBuilder?.Reset(transform.position);
+        movement?.DisableAgent();
+        movement?.StopRigidbody();
         StopAllCoroutines();
         stateManager = null;
-        movement.ResetState();
+        movement?.ResetState();
         isRunning = false;
         characterAnimation.SetRootMotion(false);
         enabled = false;

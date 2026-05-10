@@ -62,7 +62,7 @@ public class BridgeChecker : MonoBehaviour
 
         character.RemoveBrick();
 
-        GameObject brick = SimplePool.Spawn("BridgeBrick", pos, Quaternion.identity);
+        GameObject brick = SimplePool.Get("BridgeBrick", pos, Quaternion.identity);
 
         foreach (var mr in brick.GetComponentsInChildren<MeshRenderer>())
         {

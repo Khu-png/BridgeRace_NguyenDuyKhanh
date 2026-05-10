@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -6,20 +8,24 @@ public class LevelManager : Singleton<LevelManager>
 {
     private const string LevelPrefKey = "Level";
     private const string FallBrickPoolKey = "FallBrick";
+    private const string TransitionObjectName = "LevelLoader";
+    private const string TransitionStartTrigger = "Start";
+    private const string TransitionEndTrigger = "End";
     private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, 0f, -1.2f);
 
     [SerializeField] private List<GameObject> levels;
     [SerializeField] private Transform mapHolder;
     [SerializeField] private Player playerPrefab;
     [SerializeField] private CameraFollow cameraFollow;
+    [SerializeField] private Animator transitionAnimator;
+    [SerializeField] private float transitionDuration = 2f;
 
     private Player playerInstance;
     private GameObject currentLevel;
     private int level;
-    private readonly List<Character> characters = new List<Character>();
+    private Coroutine transitionRoutine;
     private readonly List<Enemy> enemies = new List<Enemy>();
     private readonly List<Rewarded> rewardedAds = new List<Rewarded>();
-    private readonly List<Character> characterDespawnBuffer = new List<Character>();
     private readonly HashSet<ColorType> usedCharacterColors = new HashSet<ColorType>();
 
     public int CurrentLevel => level;
@@ -27,8 +33,11 @@ public class LevelManager : Singleton<LevelManager>
 
     private void Start()
     {
+        ApplyApplicationSettings();
         level = GetSavedLevelIndex();
         ReloadCurrentLevel();
+        PlayTransitionEnd();
+        GameManager.Instance?.GameBegin();
     }
 
     public void OnInit()
@@ -45,7 +54,7 @@ public class LevelManager : Singleton<LevelManager>
 
     public void OnDespawn()
     {
-        SimplePool.DespawnAll(FallBrickPoolKey);
+        SimplePool.ReturnAll(FallBrickPoolKey);
         DestroyAllCharacters();
         DestroyCurrentLevel();
     }
@@ -58,8 +67,7 @@ public class LevelManager : Singleton<LevelManager>
         }
 
         DestroyCurrentLevel();
-        Transform parent = mapHolder != null ? mapHolder : transform;
-        currentLevel = Instantiate(levels[Mathf.Clamp(index, 0, levels.Count - 1)], parent);
+        currentLevel = Instantiate(levels[Mathf.Clamp(index, 0, levels.Count - 1)], mapHolder);
     }
 
     public void OnNextLevel()
@@ -101,23 +109,36 @@ public class LevelManager : Singleton<LevelManager>
         ReloadCurrentLevel();
     }
 
-    public void OnWin() => GameManager.Instance.GameWin();
-    public void OnLose() => GameManager.Instance.GameLose();
-
-    public void RegisterCharacter(Character character)
+    public void PlayTransition(Action middleAction, Action finishedAction = null)
     {
-        if (character == null || characters.Contains(character))
+        if (transitionRoutine != null)
         {
+            StopCoroutine(transitionRoutine);
+        }
+
+        ResolveTransitionAnimator();
+        if (transitionAnimator == null)
+        {
+            middleAction?.Invoke();
+            finishedAction?.Invoke();
             return;
         }
 
-        characters.Add(character);
+        transitionRoutine = StartCoroutine(TransitionRoutine(middleAction, finishedAction));
+    }
+
+    public void RegisterCharacter(Character character)
+    {
+        if (character == null)
+        {
+            return;
+        }
 
         if (character is Player player)
         {
             playerInstance = player;
         }
-        else if (character is Enemy enemy)
+        else if (character is Enemy enemy && !enemies.Contains(enemy))
         {
             enemies.Add(enemy);
         }
@@ -129,8 +150,6 @@ public class LevelManager : Singleton<LevelManager>
         {
             return;
         }
-
-        characters.Remove(character);
 
         if (character == playerInstance)
         {
@@ -169,11 +188,16 @@ public class LevelManager : Singleton<LevelManager>
 
     public void SetGameplayActorsPaused(bool isPaused)
     {
-        Player.CanMove = !isPaused && GameManager.Instance != null && GameManager.Instance.IsPlaying;
-
-        if (isPaused)
+        if (playerInstance != null)
         {
-            playerInstance?.ResetMovementState();
+            if (isPaused || GameManager.Instance == null || !GameManager.Instance.IsPlaying)
+            {
+                playerInstance.PauseMovement();
+            }
+            else
+            {
+                playerInstance.ResumeMovement();
+            }
         }
 
         for (int i = enemies.Count - 1; i >= 0; i--)
@@ -224,11 +248,6 @@ public class LevelManager : Singleton<LevelManager>
 
     private void InitializePlayer()
     {
-        if (playerPrefab == null)
-        {
-            return;
-        }
-
         if (playerInstance != null)
         {
             Destroy(playerInstance.gameObject);
@@ -236,22 +255,12 @@ public class LevelManager : Singleton<LevelManager>
 
         playerInstance = Instantiate(playerPrefab, PlayerSpawnPosition, Quaternion.identity);
         playerInstance.transform.SetPositionAndRotation(PlayerSpawnPosition, Quaternion.identity);
-        playerInstance.ResetMovementState();
+        playerInstance.ResetForSpawn();
     }
 
     private void BindCameraToPlayer()
     {
-        if (playerInstance == null)
-        {
-            return;
-        }
-
-        if (cameraFollow == null)
-        {
-            cameraFollow = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
-        }
-
-        cameraFollow?.SetTarget(playerInstance.transform);
+        cameraFollow.SetTarget(playerInstance.transform);
     }
 
     private void DestroyCurrentLevel()
@@ -268,27 +277,25 @@ public class LevelManager : Singleton<LevelManager>
 
     private void DestroyAllCharacters()
     {
-        characterDespawnBuffer.Clear();
-        for (int i = 0; i < characters.Count; i++)
+        if (playerInstance != null)
         {
-            characterDespawnBuffer.Add(characters[i]);
+            Player player = playerInstance;
+            playerInstance = null;
+            player.OnDespawn();
+            Destroy(player.gameObject);
         }
 
-        characters.Clear();
-        enemies.Clear();
-        playerInstance = null;
-
-        for (int i = 0; i < characterDespawnBuffer.Count; i++)
+        for (int i = enemies.Count - 1; i >= 0; i--)
         {
-            Character character = characterDespawnBuffer[i];
-            if (character != null)
+            Enemy enemy = enemies[i];
+            enemies.RemoveAt(i);
+
+            if (enemy != null)
             {
-                character.OnDespawn();
-                Destroy(character.gameObject);
+                enemy.OnDespawn();
+                Destroy(enemy.gameObject);
             }
         }
-
-        characterDespawnBuffer.Clear();
     }
 
     private void ResetRewardedAdsForNewPlayer()
@@ -321,5 +328,75 @@ public class LevelManager : Singleton<LevelManager>
         }
     }
 
-    private bool HasPrefabLevels() => levels != null && levels.Count > 0;
+    private IEnumerator TransitionRoutine(Action middleAction, Action finishedAction)
+    {
+        PlayTransitionStart();
+        yield return new WaitForSecondsRealtime(transitionDuration);
+
+        middleAction?.Invoke();
+
+        PlayTransitionEnd();
+        yield return new WaitForSecondsRealtime(transitionDuration);
+
+        transitionRoutine = null;
+        finishedAction?.Invoke();
+    }
+
+    private void PlayTransitionStart()
+    {
+        ResolveTransitionAnimator();
+        if (transitionAnimator == null)
+        {
+            return;
+        }
+
+        transitionAnimator.ResetTrigger(TransitionEndTrigger);
+        transitionAnimator.SetTrigger(TransitionStartTrigger);
+    }
+
+    private void PlayTransitionEnd()
+    {
+        ResolveTransitionAnimator();
+        if (transitionAnimator == null)
+        {
+            return;
+        }
+
+        transitionAnimator.ResetTrigger(TransitionStartTrigger);
+        transitionAnimator.SetTrigger(TransitionEndTrigger);
+    }
+
+    private void ResolveTransitionAnimator()
+    {
+        if (transitionAnimator != null)
+        {
+            transitionAnimator.gameObject.SetActive(true);
+            return;
+        }
+
+        GameObject transitionObject = GameObject.Find(TransitionObjectName);
+        if (transitionObject == null)
+        {
+            return;
+        }
+
+        transitionObject.SetActive(true);
+        transitionAnimator = transitionObject.GetComponent<Animator>();
+    }
+
+    private void ApplyApplicationSettings()
+    {
+        Input.multiTouchEnabled = false;
+        Application.targetFrameRate = 60;
+        Screen.sleepTimeout = SleepTimeout.NeverSleep;
+
+        const int maxScreenHeight = 1280;
+        float ratio = (float)Screen.currentResolution.width / Screen.currentResolution.height;
+        if (Screen.currentResolution.height > maxScreenHeight)
+        {
+            Screen.SetResolution(Mathf.RoundToInt(ratio * maxScreenHeight), maxScreenHeight, true);
+        }
+    }
+
+    private bool HasPrefabLevels() => levels.Count > 0;
 }

@@ -11,7 +11,7 @@ public class PlayerCollector : MonoBehaviour
         Brick brick = other.GetComponent<Brick>();
         if (brick == null) return;
 
-        if (!brick.CanBeCollectedBy(_character.characterColor)) return;
+        if (!brick.CanBeCollectedBy(_character.characterColorType)) return;
         
         Vector3 pickupPosition = brick.transform.position;
         _character.CollectBrick(pickupPosition);
@@ -27,6 +27,6 @@ public class PlayerCollector : MonoBehaviour
             spawner.OnBrickCollected(brick.spawnPos, _character); 
         }
         
-        SimplePool.Despawn(brick.gameObject);
+        SimplePool.Return(brick.gameObject);
     }
 }

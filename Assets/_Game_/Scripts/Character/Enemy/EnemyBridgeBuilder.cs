@@ -36,6 +36,8 @@ public class EnemyBridgeBuilder
     public bool TryPrepareBuild(StageController stage)
     {
         ReleaseReservation();
+        if (stage == null) return FailPrepare();
+
         targetBridge = stage.GetBestBridgeForEnemy(enemy.transform.position, enemy);
         Bridge bridge = targetBridge;
 

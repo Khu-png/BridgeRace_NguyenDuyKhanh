@@ -1143,7 +1143,9 @@ MonoBehaviour:
   - {fileID: 8707343464928410891, guid: d556624cc64ec3341892b3560e3ac36a, type: 3}
   mapHolder: {fileID: 981974426}
   playerPrefab: {fileID: 5359204225701679856, guid: f7e567046eb9cd64c87dbc1db98bac6a, type: 3}
-  cameraFollow: {fileID: 0}
+  cameraFollow: {fileID: 844627887}
+  transitionAnimator: {fileID: 2139737527}
+  transitionDuration: 2
 --- !u!4 &981974426
 Transform:
   m_ObjectHideFlags: 0
@@ -1962,7 +1964,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2139737528}
   - component: {fileID: 2139737527}
-  - component: {fileID: 2139737529}
   m_Layer: 0
   m_Name: LevelLoader
   m_TagString: Untagged
@@ -2008,20 +2009,6 @@ Transform:
   - {fileID: 1056283034}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2139737529
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2139737526}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f57499a7c2245242a3b7937052feb75, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
-  animator: {fileID: 2139737527}
-  animationDuration: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

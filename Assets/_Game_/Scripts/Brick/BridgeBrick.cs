@@ -8,7 +8,7 @@ public class BridgeBrick : MonoBehaviour
 
     private Bridge bridge;
     private int brickIndex;
-    private Color ownerColor;
+    private ColorType ownerColorType;
     private bool hasOwnerColor;
     private readonly HashSet<Character> charactersInside = new HashSet<Character>();
 
@@ -18,21 +18,23 @@ public class BridgeBrick : MonoBehaviour
     {
         bridge = ownerBridge;
         brickIndex = index;
+        ownerColorType = ColorType.None;
+        hasOwnerColor = false;
 
         modelRoot.gameObject.SetActive(false);
     }
 
-    public bool IsOwnedBy(Color color)
+    public bool IsOwnedBy(ColorType colorType)
     {
         if (!IsRevealed || !hasOwnerColor) return false;
 
-        return Vector4.Distance(ownerColor, color) <= 0.01f;
+        return ownerColorType == colorType;
     }
 
-    public void RevealAndPaint(Color color, Material material = null)
+    public void RevealAndPaint(ColorType colorType, Color color, Material material = null)
     {
         modelRoot.gameObject.SetActive(true);
-        ownerColor = color;
+        ownerColorType = colorType;
         hasOwnerColor = true;
 
         foreach (MeshRenderer renderer in modelRenderers)
@@ -65,7 +67,7 @@ public class BridgeBrick : MonoBehaviour
 
         if (!canBuildNewBrick && !canOverwriteExistingBrick) return;
 
-        if (IsOwnedBy(character.characterColor))
+        if (IsOwnedBy(character.characterColorType))
         {
             if (character.CompareTag("Player") && !bridge.IsRetired)
             {
@@ -99,7 +101,7 @@ public class BridgeBrick : MonoBehaviour
         character.SetBridgeBuildingState(true);
 
         character.RemoveBrick();
-        RevealAndPaint(character.characterColor, character.characterMaterial);
+        RevealAndPaint(character.characterColorType, character.characterColor, character.characterMaterial);
         bridge?.RegisterBrickProgress(brickIndex, character);
         if (character.CompareTag("Player") && !bridge.IsRetired)
         {

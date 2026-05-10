@@ -22,7 +22,7 @@ public class Character : MonoBehaviour
     [SerializeField] protected float standUpRecoverDelay = 0.15f;
 
     private float stunEndTime;
-    private float lastKnockdownTime = -999f;
+    private float lastKnockdownTime = float.NegativeInfinity;
     private bool isKnockedDown;
     private bool hasEnteredFallState;
     private bool isBuildingBridge;
@@ -36,9 +36,9 @@ public class Character : MonoBehaviour
     public bool IsBuildingBridge => isBuildingBridge;
     public bool HasReachedGoal => hasReachedGoal;
     public Vector3 MovementVelocity => characterRigidbody != null ? characterRigidbody.linearVelocity : Vector3.zero;
+    public ColorType characterColorType => visual.CharacterColorType;
     public Color characterColor => visual.CharacterColor;
     public Material characterMaterial => visual.CharacterMaterial;
-    public ColorType characterColorType => visual.CharacterColorType;
 
     protected virtual void Start()
     {
@@ -56,7 +56,7 @@ public class Character : MonoBehaviour
 
         hasDespawned = false;
         stunEndTime = 0f;
-        lastKnockdownTime = -999f;
+        lastKnockdownTime = float.NegativeInfinity;
         isKnockedDown = false;
         hasEnteredFallState = false;
         isBuildingBridge = false;
@@ -131,15 +131,14 @@ public class Character : MonoBehaviour
     {
         if (!isKnockedDown) return;
 
-        AnimatorStateInfo stateInfo = characterAnimation.CurrentState;
         bool isInTransition = characterAnimation.IsInTransition;
 
-        if (!hasEnteredFallState && stateInfo.IsName(FallStateName))
+        if (!hasEnteredFallState && characterAnimation.IsState(FallStateName))
         {
             hasEnteredFallState = true;
         }
 
-        if (hasEnteredFallState && !isInTransition && stateInfo.IsName(IdleStateName))
+        if (hasEnteredFallState && !isInTransition && characterAnimation.IsState(IdleStateName))
         {
             stunEndTime = Time.time + standUpRecoverDelay;
             isKnockedDown = false;

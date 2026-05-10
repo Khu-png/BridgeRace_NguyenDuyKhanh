@@ -1,8 +1,9 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public partial class Bridge
 {
-    private const float ColorTolerance = 0.01f;
+    private readonly Dictionary<GameObject, ColorType> legacyBrickColorTypes = new Dictionary<GameObject, ColorType>();
 
     public GameObject GetCurrentBrick()
     {
@@ -29,33 +30,33 @@ public partial class Bridge
         return IsBrickVisible(GetBrickAtIndex(index));
     }
 
-    public bool IsCurrentBrickOwnedBy(Color color)
+    public bool IsCurrentBrickOwnedBy(ColorType colorType)
     {
-        return IsBrickOwnedBy(currentIndex, color);
+        return IsBrickOwnedBy(currentIndex, colorType);
     }
 
-    public bool IsBrickOwnedBy(int index, Color color)
+    public bool IsBrickOwnedBy(int index, ColorType colorType)
     {
-        return IsBrickPaintedColor(GetBrickAtIndex(index), color);
+        return IsBrickPaintedColor(GetBrickAtIndex(index), colorType);
     }
 
-    public void PaintCurrentBrick(Color color)
+    public void PaintCurrentBrick(ColorType colorType, Color color, Material material = null)
     {
-        PaintBrickAtIndex(currentIndex, color);
+        PaintBrickAtIndex(currentIndex, colorType, color, material);
     }
 
-    public void PaintBrickAtIndex(int index, Color color)
+    public void PaintBrickAtIndex(int index, ColorType colorType, Color color, Material material = null)
     {
         GameObject brick = GetBrickAtIndex(index);
         if (brick == null) return;
 
         if (TryGetBridgeBrick(brick, out BridgeBrick bridgeBrick))
         {
-            bridgeBrick.RevealAndPaint(color);
+            bridgeBrick.RevealAndPaint(colorType, color, material);
         }
         else
         {
-            RevealAndPaintLegacyBrick(brick, color);
+            RevealAndPaintLegacyBrick(brick, colorType, color, material);
         }
 
         if (index >= currentIndex)
@@ -64,13 +65,13 @@ public partial class Bridge
         }
     }
 
-    public int CountBuiltBricksByColor(Color color)
+    public int CountBuiltBricksByColor(ColorType colorType)
     {
         int count = 0;
 
         foreach (GameObject brick in bricks)
         {
-            if (IsBrickPaintedColor(brick, color))
+            if (IsBrickPaintedColor(brick, colorType))
             {
                 count++;
             }
@@ -106,7 +107,7 @@ public partial class Bridge
         return brick.activeSelf;
     }
 
-    private bool IsBrickPaintedColor(GameObject brick, Color color)
+    private bool IsBrickPaintedColor(GameObject brick, ColorType colorType)
     {
         if (!IsBrickVisible(brick))
         {
@@ -115,14 +116,17 @@ public partial class Bridge
 
         if (TryGetBridgeBrick(brick, out BridgeBrick bridgeBrick))
         {
-            return bridgeBrick.IsOwnedBy(color);
+            return bridgeBrick.IsOwnedBy(colorType);
         }
 
         MeshRenderer renderer = brick.GetComponentInChildren<MeshRenderer>();
-        return renderer != null && renderer.sharedMaterial != null && AreSameColor(renderer.sharedMaterial.color, color);
+        return renderer != null
+            && renderer.sharedMaterial != null
+            && legacyBrickColorTypes.TryGetValue(brick, out ColorType ownerColorType)
+            && ownerColorType == colorType;
     }
 
-    private void RevealAndPaintLegacyBrick(GameObject brick, Color color)
+    private void RevealAndPaintLegacyBrick(GameObject brick, ColorType colorType, Color color, Material material)
     {
         if (!brick.activeSelf)
         {
@@ -131,8 +135,17 @@ public partial class Bridge
 
         foreach (MeshRenderer renderer in brick.GetComponentsInChildren<MeshRenderer>())
         {
-            RendererColorUtility.ApplyColor(renderer, color);
+            if (material != null)
+            {
+                RendererColorUtility.ApplyMaterial(renderer, material);
+            }
+            else
+            {
+                RendererColorUtility.ApplyColor(renderer, color);
+            }
         }
+
+        legacyBrickColorTypes[brick] = colorType;
     }
 
     private bool TryGetBridgeBrick(GameObject brick, out BridgeBrick bridgeBrick)
@@ -141,8 +154,4 @@ public partial class Bridge
         return bridgeBrick != null;
     }
 
-    private bool AreSameColor(Color first, Color second)
-    {
-        return Vector4.Distance(first, second) <= ColorTolerance;
-    }
 }

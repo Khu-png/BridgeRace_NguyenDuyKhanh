@@ -41,7 +41,7 @@ public class CharacterBrickStack : MonoBehaviour
 
         GameObject topBrick = bricks.Pop();
         SetStackBrickTrailActive(topBrick, false);
-        SimplePool.Despawn(topBrick);
+        SimplePool.Return(topBrick);
         RefreshStackVisuals();
 
         return topBrick;
@@ -53,7 +53,7 @@ public class CharacterBrickStack : MonoBehaviour
         {
             GameObject brick = bricks.Pop();
             SetStackBrickTrailActive(brick, false);
-            SimplePool.Despawn(brick);
+            SimplePool.Return(brick);
         }
     }
 
@@ -71,7 +71,7 @@ public class CharacterBrickStack : MonoBehaviour
 
     private GameObject SpawnStackBrick(Vector3 pickupPosition, Color color, Material material)
     {
-        GameObject brick = SimplePool.Spawn(StackBrickPoolKey, pickupPosition, Quaternion.identity);
+        GameObject brick = SimplePool.Get(StackBrickPoolKey, pickupPosition, Quaternion.identity);
         if (brick == null) return null;
 
         brick.transform.SetParent(brickHolder, true);
@@ -137,10 +137,10 @@ public class CharacterBrickStack : MonoBehaviour
         Vector3 startPosition = origin + Vector3.up * dropHeight;
         Vector3 targetPosition = origin + new Vector3(randomCircle.x, dropHeight, randomCircle.y);
 
-        GameObject droppedBrick = SimplePool.Spawn(DroppedBrickPoolKey, startPosition, Quaternion.identity);
+        GameObject droppedBrick = SimplePool.Get(DroppedBrickPoolKey, startPosition, Quaternion.identity);
         if (droppedBrick == null)
         {
-            droppedBrick = SimplePool.Spawn(FallbackDroppedBrickPoolKey, startPosition, Quaternion.identity);
+            droppedBrick = SimplePool.Get(FallbackDroppedBrickPoolKey, startPosition, Quaternion.identity);
         }
 
         if (droppedBrick == null) return;

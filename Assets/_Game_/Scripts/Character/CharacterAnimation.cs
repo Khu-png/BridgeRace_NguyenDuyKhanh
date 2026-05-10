@@ -11,8 +11,12 @@ public class CharacterAnimation : MonoBehaviour
 
     private string currentAnimationName;
 
-    public AnimatorStateInfo CurrentState => animator.GetCurrentAnimatorStateInfo(0);
     public bool IsInTransition => animator.IsInTransition(0);
+
+    public bool IsState(string stateName)
+    {
+        return animator.GetCurrentAnimatorStateInfo(0).IsName(stateName);
+    }
 
     public void SetTimeScaleMode(AnimatorUpdateMode updateMode)
     {

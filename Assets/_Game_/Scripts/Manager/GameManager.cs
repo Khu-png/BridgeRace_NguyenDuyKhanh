@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -7,6 +8,7 @@ public class GameManager : Singleton<GameManager>
 
     public enum GameState { MainMenu, Playing, Paused, Win, Lose }
 
+    private static bool hasState;
     private static GameState gameState;
     private GameState resumeState = GameState.MainMenu;
     private bool isChangingLevel;
@@ -14,40 +16,64 @@ public class GameManager : Singleton<GameManager>
     private Coroutine startRoutine;
 
     public GameState CurrentState => gameState;
+    public GameState ResumeState => resumeState;
     public bool IsPlaying => IsState(GameState.Playing);
     public bool IsPaused => IsState(GameState.Paused);
-
-    protected override void Awake()
-    {
-        base.Awake();
-        Input.multiTouchEnabled = false;
-        Application.targetFrameRate = 60;
-        Screen.sleepTimeout = SleepTimeout.NeverSleep;
-
-        const int maxScreenHeight = 1280;
-        float ratio = (float)Screen.currentResolution.width / Screen.currentResolution.height;
-        if (Screen.currentResolution.height > maxScreenHeight)
-        {
-            Screen.SetResolution(Mathf.RoundToInt(ratio * maxScreenHeight), maxScreenHeight, true);
-        }
-    }
+    public bool IsChangingLevel => isChangingLevel;
 
     private void Start()
     {
         DontDestroyOnLoad(gameObject);
-        EnterState(GameState.MainMenu, false);
-        OpenMainMenu();
-        LevelLoader.PlayEnd();
     }
 
-    public static void ChangeState(GameState state) => gameState = state;
+    public static void ChangeState(GameState state, bool forceRefresh = false)
+    {
+        if (!forceRefresh && hasState && gameState == state)
+        {
+            return;
+        }
+
+        hasState = true;
+        gameState = state;
+
+        if (Instance != null)
+        {
+            Instance.OnStateChanged(state);
+        }
+    }
+
     public static bool IsState(GameState state) => gameState == state;
+
+    public void GameWin()
+    {
+        if (IsState(GameState.Win) || isChangingLevel)
+        {
+            return;
+        }
+
+        ChangeState(GameState.Win);
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
+    }
+
+    public void GameLose()
+    {
+        StopPendingLevelChange();
+        ChangeState(GameState.Lose);
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
+    }
+
+    public void GameBegin()
+    {
+        StopPendingLevelChange();
+        ChangeState(GameState.MainMenu);
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
+    }
 
     public void GameStart()
     {
         StopPendingLevelChange();
         UIManager.Instance?.CloseAll();
-        EnterState(GameState.MainMenu, false);
+        ChangeState(GameState.MainMenu);
         LevelManager.Instance?.SetGameplayActorsPaused(true);
         startRoutine = StartCoroutine(GameStartRoutine());
     }
@@ -60,55 +86,38 @@ public class GameManager : Singleton<GameManager>
         }
 
         resumeState = gameState;
-        EnterState(GameState.Paused, false, false);
+        ChangeState(GameState.Paused);
         LevelManager.Instance?.SetGameplayActorsPaused(true);
-        UIManager.Instance?.CloseAll();
-        UIManager.Instance?.OpenUI<Pause>();
     }
 
     public void GameResume()
     {
-        EnterState(resumeState, resumeState != GameState.MainMenu);
-        UIManager.Instance?.CloseAll();
+        ChangeState(resumeState);
 
-        if (resumeState == GameState.MainMenu)
+        if (IsState(GameState.MainMenu))
         {
-            OpenMainMenu();
             return;
         }
 
         LevelManager.Instance?.SetGameplayActorsPaused(false);
-        ShowGameplayUI();
     }
 
-    public void GameWin()
-    {
-        if (IsState(GameState.Win) || isChangingLevel)
-        {
-            return;
-        }
-
-        ShowResult<Win>(GameState.Win);
-    }
-
-    public void GameLose()
-    {
-        StopPendingLevelChange();
-        ShowResult<Lose>(GameState.Lose);
-    }
-
-    public void GameRestart()
+    public void GameRestart(bool startAfterRestart = false)
     {
         StopPendingLevelChange();
         ClearGameplayObjects();
         UIManager.Instance?.CloseAll();
-        EnterState(GameState.MainMenu, false);
         LevelManager.Instance?.OnReplay();
         LevelManager.Instance?.SetGameplayActorsPaused(true);
-        startRoutine = StartCoroutine(GameStartRoutine());
+        ChangeState(GameState.MainMenu, true);
+
+        if (startAfterRestart)
+        {
+            startRoutine = StartCoroutine(GameStartRoutine());
+        }
     }
 
-    public void GameNextLevel()
+    public void GameNextLevel(Action onCompleted = null)
     {
         if (!IsState(GameState.Win) || isChangingLevel)
         {
@@ -116,96 +125,55 @@ public class GameManager : Singleton<GameManager>
         }
 
         isChangingLevel = true;
-        levelChangeRoutine = StartCoroutine(GameNextLevelRoutine());
+        levelChangeRoutine = StartCoroutine(GameNextLevelRoutine(onCompleted));
     }
 
-    public void GameMenu()
+    public void GameMenu(Action onCompleted = null)
     {
         StopPendingLevelChange();
-        EnterState(GameState.MainMenu, false);
         UIManager.Instance?.CloseAll();
-        LevelLoader.PlayMenuTransition(() =>
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
+
+        LevelManager.Instance?.PlayTransition(() =>
         {
             ClearGameplayObjects();
             LevelManager.Instance?.OnReplay();
-            OpenMainMenu();
+            onCompleted?.Invoke();
+            ChangeState(GameState.MainMenu);
         });
     }
 
-    public void GameResetLevel()
+    public void GameResetLevel(Action onCompleted = null)
     {
         StopPendingLevelChange();
-        EnterState(GameState.MainMenu, false);
         UIManager.Instance?.CloseAll();
-        LevelLoader.PlayMenuTransition(() =>
+        LevelManager.Instance?.SetGameplayActorsPaused(true);
+
+        LevelManager.Instance?.PlayTransition(() =>
         {
             ClearGameplayObjects();
             LevelManager.Instance?.ResetToLevel1();
-            OpenMainMenu();
+            onCompleted?.Invoke();
+            ChangeState(GameState.MainMenu);
         });
     }
 
-    private IEnumerator GameNextLevelRoutine()
+    private IEnumerator GameNextLevelRoutine(Action onCompleted)
     {
         yield return new WaitForSeconds(1);
 
         UIManager.Instance?.CloseAll();
-        bool isTransitionFinished = false;
-        LevelLoader.PlayMenuTransition(() =>
+
+        LevelManager.Instance?.PlayTransition(() =>
         {
             LevelManager.Instance?.OnNextLevel();
-            EnterState(GameState.MainMenu, false);
-            OpenMainMenu();
-        }, () => isTransitionFinished = true);
-
-        yield return new WaitUntil(() => isTransitionFinished);
-
-        isChangingLevel = false;
-        levelChangeRoutine = null;
-    }
-
-    private IEnumerator GameStartRoutine()
-    {
-        Counter counter = UIManager.Instance?.OpenUI<Counter>();
-        bool isCounterFinished = counter == null;
-
-        if (counter != null)
+            onCompleted?.Invoke();
+            ChangeState(GameState.MainMenu);
+        }, () =>
         {
-            counter.Play(() => isCounterFinished = true);
-        }
-
-        yield return new WaitUntil(() => isCounterFinished);
-
-        EnterState(GameState.Playing, true);
-        LevelManager.Instance?.SetGameplayActorsPaused(false);
-        LevelManager.Instance?.GrantPendingRewardedAds();
-        ShowGameplayUI();
-        startRoutine = null;
-    }
-
-    private void EnterState(GameState state, bool canMove, bool updateResumeState = true)
-    {
-        if (updateResumeState)
-        {
-            resumeState = state;
-        }
-
-        ChangeState(state);
-        Player.CanMove = canMove;
-    }
-
-    private void ShowResult<T>(GameState state) where T : UICanvas
-    {
-        EnterState(state, false);
-        LevelManager.Instance?.SetGameplayActorsPaused(true);
-        UIManager.Instance?.CloseAll();
-        UIManager.Instance?.OpenUI<T>();
-    }
-
-    private void OpenMainMenu()
-    {
-        UIManager.Instance?.CloseAll();
-        UIManager.Instance?.OpenUI<Mainmenu>();
+            isChangingLevel = false;
+            levelChangeRoutine = null;
+        });
     }
 
     private void StopPendingLevelChange()
@@ -226,15 +194,60 @@ public class GameManager : Singleton<GameManager>
         isChangingLevel = false;
     }
 
-    private void ShowGameplayUI()
+    private void ClearGameplayObjects() => PoolManager.Instance?.ReturnAllActive(FallBrickPoolKey);
+
+    private IEnumerator GameStartRoutine()
     {
-        if (LevelManager.Instance != null)
+        Counter counter = UIManager.Instance?.OpenUI<Counter>();
+        bool isCounterFinished = counter == null;
+
+        if (counter != null)
         {
-            UIManager.Instance?.OpenUI<LevelText>()?.SetLevel(LevelManager.Instance.CurrentLevel + 1);
+            counter.Play(() => isCounterFinished = true);
         }
 
-        UIManager.Instance?.OpenUI<PauseButton>();
+        yield return new WaitUntil(() => isCounterFinished);
+
+        ChangeState(GameState.Playing);
+        LevelManager.Instance?.SetGameplayActorsPaused(false);
+        LevelManager.Instance?.GrantPendingRewardedAds();
+        startRoutine = null;
     }
 
-    private void ClearGameplayObjects() => PoolManager.Instance?.ReturnAllActive(FallBrickPoolKey);
+    private void OnStateChanged(GameState state)
+    {
+        switch (state)
+        {
+            case GameState.MainMenu:
+                UIManager.Instance?.CloseAll();
+                UIManager.Instance?.OpenUI<Mainmenu>();
+                break;
+
+            case GameState.Playing:
+                UIManager.Instance?.CloseAll();
+
+                if (LevelManager.Instance != null)
+                {
+                    UIManager.Instance?.OpenUI<LevelText>()?.SetLevel(LevelManager.Instance.CurrentLevel + 1);
+                }
+
+                UIManager.Instance?.OpenUI<PauseButton>();
+                break;
+
+            case GameState.Paused:
+                UIManager.Instance?.CloseAll();
+                UIManager.Instance?.OpenUI<Pause>();
+                break;
+
+            case GameState.Win:
+                UIManager.Instance?.CloseAll();
+                UIManager.Instance?.OpenUI<Win>();
+                break;
+
+            case GameState.Lose:
+                UIManager.Instance?.CloseAll();
+                UIManager.Instance?.OpenUI<Lose>();
+                break;
+        }
+    }
 }

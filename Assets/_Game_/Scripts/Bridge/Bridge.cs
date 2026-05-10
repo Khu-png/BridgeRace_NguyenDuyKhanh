@@ -137,6 +137,8 @@ public partial class Bridge : MonoBehaviour
 
     public void Retire()
     {
+        if (isRetired) return;
+
         isRetired = true;
 
         if (generatedRamp == null) return;

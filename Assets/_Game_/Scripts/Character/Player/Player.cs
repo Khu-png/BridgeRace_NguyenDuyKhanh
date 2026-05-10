@@ -3,8 +3,6 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class Player : Character
 {
-    public static bool CanMove { get; set; } = true;
-
     [Header("Movement")]
     [SerializeField] private Joystick _joystick;
     [SerializeField] private float _moveSpeed;
@@ -16,6 +14,7 @@ public class Player : Character
     [SerializeField] private float edgeSlideAngle = 35f;
 
     private bool isRunning;
+    private bool canMove = true;
 
     public override void OnInit()
     {
@@ -26,8 +25,7 @@ public class Player : Character
             _joystick = FindFirstObjectByType<Joystick>();
         }
 
-        CanMove = true;
-        ResetMovementState();
+        ResetForSpawn();
     }
 
     private void FixedUpdate()
@@ -52,7 +50,7 @@ public class Player : Character
             return;
         }
 
-        if (!CanMove)
+        if (!canMove)
         {
             characterRigidbody.linearVelocity = Vector3.zero;
 
@@ -109,11 +107,16 @@ public class Player : Character
 
     protected override void StopForGoal()
     {
-        CanMove = false;
+        PauseMovement();
+    }
+
+    public void ResetForSpawn()
+    {
+        canMove = true;
         ResetMovementState();
     }
 
-    public void ResetMovementState()
+    private void ResetMovementState()
     {
         if (_joystick == null)
         {
@@ -131,6 +134,22 @@ public class Player : Character
         }
 
         isRunning = false;
+    }
+
+    public void PauseMovement()
+    {
+        canMove = false;
+        ResetMovementState();
+    }
+
+    public void ResumeMovement()
+    {
+        if (HasReachedGoal)
+        {
+            return;
+        }
+
+        canMove = true;
     }
 
     private Vector3 FilterDirectionByGround(Vector3 direction)

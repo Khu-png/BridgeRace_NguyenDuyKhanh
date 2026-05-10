@@ -52,7 +52,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.15
+  m_Radius: 0.25
   m_Center: {x: 0, y: 0.2, z: 0}
 --- !u!114 &6233759146964030344
 MonoBehaviour:
@@ -261,7 +261,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterBrickStack
   brickHolder: {fileID: 9104511113852776861}
   brickOffset: 0.15
-  moveSpeed: 2
+  moveSpeed: 3
   stackBrickScale: {x: 1.2, y: 1.2, z: 1.2}
   dropScatterRadius: 1
   dropHeight: 0.1

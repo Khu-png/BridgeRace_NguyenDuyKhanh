@@ -12,6 +12,7 @@ public class EnemyCheck : MonoBehaviour
         if (!otherCharacter.CompareTag("Player") && !otherCharacter.CompareTag("Enemy")) return;
         if (!owner.CompareTag("Player") && !owner.CompareTag("Enemy")) return;
 
+        if (owner.IsBuildingBridge || otherCharacter.IsBuildingBridge) return;
         if (owner is Enemy ownerEnemy && ownerEnemy.IsTransformDrivenMovement) return;
         if (otherCharacter is Enemy otherEnemy && otherEnemy.IsTransformDrivenMovement) return;
         if (owner.IsStunned || otherCharacter.IsStunned) return;

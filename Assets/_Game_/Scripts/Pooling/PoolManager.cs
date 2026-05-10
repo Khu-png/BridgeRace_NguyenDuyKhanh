@@ -10,11 +10,7 @@ public class PoolManager : Singleton<PoolManager>
         public GameObject prefab;
         public int amount;
     }
-    
-    public class PoolObject : MonoBehaviour
-    {
-        public string key;
-    }
+
 
     public List<PoolElement> elements;
 
@@ -54,7 +50,7 @@ public class PoolManager : Singleton<PoolManager>
                 if (poolObj == null)
                     poolObj = obj.AddComponent<PoolObject>();
 
-                poolObj.key = element.key;
+                poolObj.Key = element.key;
 
                 obj.SetActive(false);
                 queue.Enqueue(obj);
@@ -88,7 +84,7 @@ public class PoolManager : Singleton<PoolManager>
             if (poolObj == null)
                 poolObj = obj.AddComponent<PoolObject>();
 
-            poolObj.key = key;
+            poolObj.Key = key;
         }
         else
         {
@@ -121,7 +117,7 @@ public class PoolManager : Singleton<PoolManager>
             return;
         }
 
-        string key = poolObj.key;
+        string key = poolObj.Key;
         if (string.IsNullOrEmpty(key) || !poolDictionary.ContainsKey(key) || !parentDictionary.ContainsKey(key))
         {
             return;

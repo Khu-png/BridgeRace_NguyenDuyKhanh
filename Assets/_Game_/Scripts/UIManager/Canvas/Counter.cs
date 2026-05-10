@@ -12,6 +12,18 @@ public class Counter : UICanvas
 
     private Coroutine countRoutine;
 
+    public static void PlayBeforeGameplay(Action onCompleted)
+    {
+        Counter counter = UIManager.Instance?.OpenUI<Counter>();
+        if (counter == null)
+        {
+            onCompleted?.Invoke();
+            return;
+        }
+
+        counter.Play(onCompleted);
+    }
+
     protected override void OnInit()
     {
         base.OnInit();
