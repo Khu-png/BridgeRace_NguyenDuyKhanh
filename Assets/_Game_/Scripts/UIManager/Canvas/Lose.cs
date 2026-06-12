@@ -4,7 +4,7 @@ public class Lose : UICanvas
 {
     public void OnClickRestart()
     {
-        GameManager.Instance?.GameRestart();
+        GameManager.Instance?.GameRestart(true);
     }
 
     public void OnClickMenu()

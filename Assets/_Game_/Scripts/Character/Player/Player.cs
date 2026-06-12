@@ -50,7 +50,7 @@ public class Player : Character
             return;
         }
 
-        if (!canMove)
+        if (!canMove || GameManager.Instance == null || !GameManager.Instance.IsPlaying)
         {
             characterRigidbody.linearVelocity = Vector3.zero;
 

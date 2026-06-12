@@ -14,6 +14,7 @@ public class GameManager : Singleton<GameManager>
     private bool isChangingLevel;
     private Coroutine levelChangeRoutine;
     private Coroutine startRoutine;
+    private bool suppressMainMenuUI;
 
     public GameState CurrentState => gameState;
     public GameState ResumeState => resumeState;
@@ -109,12 +110,16 @@ public class GameManager : Singleton<GameManager>
         UIManager.Instance?.CloseAll();
         LevelManager.Instance?.OnReplay();
         LevelManager.Instance?.SetGameplayActorsPaused(true);
-        ChangeState(GameState.MainMenu, true);
 
         if (startAfterRestart)
         {
+            suppressMainMenuUI = true;
+            ChangeState(GameState.MainMenu, true);
             startRoutine = StartCoroutine(GameStartRoutine());
+            return;
         }
+
+        ChangeState(GameState.MainMenu, true);
     }
 
     public void GameNextLevel(Action onCompleted = null)
@@ -185,6 +190,8 @@ public class GameManager : Singleton<GameManager>
             UIManager.Instance?.CloseUI<Counter>();
         }
 
+        suppressMainMenuUI = false;
+
         if (levelChangeRoutine != null)
         {
             StopCoroutine(levelChangeRoutine);
@@ -220,7 +227,11 @@ public class GameManager : Singleton<GameManager>
         {
             case GameState.MainMenu:
                 UIManager.Instance?.CloseAll();
-                UIManager.Instance?.OpenUI<Mainmenu>();
+                if (!suppressMainMenuUI)
+                {
+                    UIManager.Instance?.OpenUI<Mainmenu>();
+                }
+                suppressMainMenuUI = false;
                 break;
 
             case GameState.Playing:

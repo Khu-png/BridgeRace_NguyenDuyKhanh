@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Character : MonoBehaviour
@@ -28,6 +29,8 @@ public class Character : MonoBehaviour
     private bool isBuildingBridge;
     private bool hasReachedGoal;
     private bool hasDespawned;
+    private Collider[] bodyColliders;
+    private bool[] bodyColliderInitialStates;
 
     public int BrickCount => brickStack.Count;
     public StageController CurrentStage => currentStage;
@@ -35,10 +38,13 @@ public class Character : MonoBehaviour
     public bool IsStunned => isKnockedDown || Time.time < stunEndTime;
     public bool IsBuildingBridge => isBuildingBridge;
     public bool HasReachedGoal => hasReachedGoal;
-    public Vector3 MovementVelocity => characterRigidbody != null ? characterRigidbody.linearVelocity : Vector3.zero;
+    public Vector3 MovementVelocity =>
+        characterRigidbody != null && !characterRigidbody.isKinematic ? characterRigidbody.linearVelocity : Vector3.zero;
     public ColorType characterColorType => visual.CharacterColorType;
     public Color characterColor => visual.CharacterColor;
     public Material characterMaterial => visual.CharacterMaterial;
+
+    protected virtual bool DisableBodyCollisionWhileKnockedDown => false;
 
     protected virtual void Start()
     {
@@ -53,6 +59,9 @@ public class Character : MonoBehaviour
     public virtual void OnInit()
     {
         LevelManager.Instance?.RegisterCharacter(this);
+
+        ResolveBodyColliders();
+        SetBodyCollisionActive(true);
 
         hasDespawned = false;
         stunEndTime = 0f;
@@ -80,6 +89,7 @@ public class Character : MonoBehaviour
         hasDespawned = true;
         LevelManager.Instance?.UnregisterCharacter(this);
         currentStage?.UnregisterCharacter(this);
+        SetBodyCollisionActive(true);
     }
 
     public void SetCurrentStage(StageController newStage, BrickSpawner targetSpawner = null)
@@ -123,6 +133,7 @@ public class Character : MonoBehaviour
 
         ChangeAnimation(CharacterAnimation.FallTriggerName);
         brickStack.DropAll(transform.position, characterColor);
+        SetBodyCollisionActive(false);
         OnKnockedDown();
         return true;
     }
@@ -142,12 +153,13 @@ public class Character : MonoBehaviour
         {
             stunEndTime = Time.time + standUpRecoverDelay;
             isKnockedDown = false;
+            SetBodyCollisionActive(true);
         }
     }
 
     public void Block()
     {
-        characterRigidbody.linearVelocity = Vector3.zero;
+        StopRigidbody();
     }
 
     protected void ChangeAnimation(string animationName)
@@ -174,19 +186,64 @@ public class Character : MonoBehaviour
 
     protected virtual void OnKnockedDown()
     {
-        characterRigidbody.linearVelocity = Vector3.zero;
-        characterRigidbody.angularVelocity = Vector3.zero;
+        StopRigidbody();
     }
 
     protected virtual void StopForGoal()
     {
-        characterRigidbody.linearVelocity = Vector3.zero;
-        characterRigidbody.angularVelocity = Vector3.zero;
+        StopRigidbody();
     }
 
     private bool CanBeKnockedDown()
     {
         return Time.time >= lastKnockdownTime + knockdownCooldown;
+    }
+
+    private void StopRigidbody()
+    {
+        if (characterRigidbody == null || characterRigidbody.isKinematic) return;
+
+        characterRigidbody.linearVelocity = Vector3.zero;
+        characterRigidbody.angularVelocity = Vector3.zero;
+    }
+
+    private void ResolveBodyColliders()
+    {
+        if (bodyColliders != null) return;
+
+        Collider[] colliders = GetComponentsInChildren<Collider>(true);
+        List<Collider> solidColliders = new List<Collider>();
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider targetCollider = colliders[i];
+            if (targetCollider == null || targetCollider.isTrigger) continue;
+
+            solidColliders.Add(targetCollider);
+        }
+
+        bodyColliders = solidColliders.ToArray();
+        bodyColliderInitialStates = new bool[bodyColliders.Length];
+
+        for (int i = 0; i < bodyColliders.Length; i++)
+        {
+            bodyColliderInitialStates[i] = bodyColliders[i].enabled;
+        }
+    }
+
+    private void SetBodyCollisionActive(bool isActive)
+    {
+        if (!DisableBodyCollisionWhileKnockedDown) return;
+
+        ResolveBodyColliders();
+
+        for (int i = 0; i < bodyColliders.Length; i++)
+        {
+            Collider bodyCollider = bodyColliders[i];
+            if (bodyCollider == null) continue;
+
+            bodyCollider.enabled = isActive && bodyColliderInitialStates[i];
+        }
     }
 
     private void ResolveInitialStage()

@@ -18,6 +18,7 @@ public class Enemy : Character
     public Bridge TargetBridge => bridgeBuilder.TargetBridge;
     public bool IsCrossingBridge => movement != null && movement.IsCrossingBridge;
     public bool IsTransformDrivenMovement => movement != null && movement.IsTransformDrivenMovement;
+    protected override bool DisableBodyCollisionWhileKnockedDown => true;
 
     public override void OnInit()
     {
@@ -136,6 +137,7 @@ public class Enemy : Character
 
     protected override void OnKnockedDown()
     {
+        base.OnKnockedDown();
         SetBridgeBuildingState(false);
         bridgeBuilder?.ReleaseReservation();
         movement?.PauseAgentAtCurrentPosition();

@@ -67,6 +67,11 @@ public class BridgeBrick : MonoBehaviour
 
         if (!canBuildNewBrick && !canOverwriteExistingBrick) return;
 
+        if (character.CompareTag("Player") && !IsMovingForwardOnBridge(character))
+        {
+            return;
+        }
+
         if (IsOwnedBy(character.characterColorType))
         {
             if (character.CompareTag("Player") && !bridge.IsRetired)
@@ -86,11 +91,6 @@ public class BridgeBrick : MonoBehaviour
         {
             if (character.CompareTag("Player") && !bridge.IsRetired)
             {
-                if (!IsMovingForwardOnBridge(character))
-                {
-                    return;
-                }
-
                 bridge?.MoveWallToBlockBrick(brickIndex);
                 character.Block();
             }
